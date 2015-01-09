@@ -1,0 +1,10 @@
+TOPDIR=$(pwd)
+PROJECT_NAME="oscard"
+
+if [ ! $(basename $TOPDIR) = "$PROJECT_NAME" ]; then
+	echo "source this file from its containing folder, please..."
+	return 1
+fi
+
+source venv/bin/activate
+export PYTHONPATH="$(pwd):$PYTHONPATH"
