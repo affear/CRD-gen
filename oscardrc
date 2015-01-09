@@ -1,3 +1,4 @@
+#!/bin/bash
 if [[ ! -e `basename ${BASH_SOURCE[0]}` ]]; then
 	echo "source this file from its containing folder, please..."
 	return 1
