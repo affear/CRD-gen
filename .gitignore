@@ -55,3 +55,4 @@ target/
 
 ############## My ignore
 venv
+oscard.conf
