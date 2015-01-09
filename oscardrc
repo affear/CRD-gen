@@ -1,7 +1,4 @@
-TOPDIR=$(pwd)
-PROJECT_NAME="oscard"
-
-if [ ! $(basename $TOPDIR) = "$PROJECT_NAME" ]; then
+if [[ ! -e `basename ${BASH_SOURCE[0]}` ]]; then
 	echo "source this file from its containing folder, please..."
 	return 1
 fi
