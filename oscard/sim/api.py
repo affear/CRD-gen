@@ -33,6 +33,21 @@ oscard_opts = [
 		default=8773,
 		help='Nova API port'
 	),
+	cfg.StrOpt(
+		name='os_username',
+		default='admin',
+		help='OpenStack username (make it match OS conf)'
+	),
+	cfg.StrOpt(
+		name='os_tenant',
+		default='admin',
+		help='OpenStack tenant name (make it match OS conf)'
+	),
+	cfg.StrOpt(
+		name='os_password',
+		default='pwstack',
+		help='OpenStack password (make it match OS conf)'
+	),
 ]
 
 CONF = cfg.CONF
@@ -96,9 +111,9 @@ class NovaAPI(CRDAPI):
 	def __init__(self):
 		self.creds = {}
 		self.creds['auth_url'] = self._baseurl + ':' + str(CONF.keystone_port) + '/v2.0'
-		self.creds['username'] = "admin"
-		self.creds['password'] = "pwstack"
-		self.creds['tenant_name'] = "admin"
+		self.creds['username'] = CONF.os_username
+		self.creds['password'] = CONF.os_password
+		self.creds['tenant_name'] = CONF.os_tenant
 
 		self.keystone = ksclient.Client(**self.creds)
 		self.nova = nvclient.Client(**self.creds)
