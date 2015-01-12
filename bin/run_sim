@@ -1,4 +1,6 @@
 #!venv/bin/python
+# the simulation should be run on a dedicated machine
+# (e.g. your laptop)
 import sys
 
 from oscard.sim.run import main

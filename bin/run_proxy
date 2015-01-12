@@ -1,2 +1,3 @@
 #!/bin/bash
+# the proxy server should be run in the docker container
 python oscard/sim/proxy.py
