@@ -13,6 +13,26 @@ oscard_opts = [
 		default='localhost',
 		help='Oscard proxy host'
 	),
+	cfg.StrOpt(
+		name='ctrl_host',
+		default='localhost',
+		help='OpenStack controller host'
+	),
+	cfg.IntOpt(
+		name='glance_port',
+		default=9292,
+		help='Glance port'
+	),
+	cfg.IntOpt(
+		name='keystone_port',
+		default=35357,
+		help='Keystone port'
+	),
+	cfg.IntOpt(
+		name='nova-api_port',
+		default=8773,
+		help='Nova API port'
+	),
 ]
 
 CONF = cfg.CONF
@@ -45,11 +65,6 @@ class FakeAPI(CRDAPI):
 		LOG.info("novapi: destroy")
 		return {"body": "destroyed"}, 200
 
-class NovaAPI(CRDAPI):
-	_baseurl = ''
-
-	pass
-
 class OscardAPI(CRDAPI):
 
 	# this should be the proxy url
@@ -71,3 +86,23 @@ class OscardAPI(CRDAPI):
 
 	def destroy(self, **kwargs):
 		return self._send_request('destroy', **kwargs)
+
+from keystoneclient.v2_0 import client as ksclient
+from novaclient.v1_1 import client as nvclient
+from glanceclient.v2 import client as glclient
+class NovaAPI(CRDAPI):
+	_baseurl = 'http://' + CONF.ctrl_host
+
+	def __init__(self):
+		self.creds = {}
+		self.creds['auth_url'] = self._baseurl + ':' + str(CONF.keystone_port) + '/v2.0'
+		self.creds['username'] = "admin"
+		self.creds['password'] = "pwstack"
+		self.creds['tenant_name'] = "admin"
+
+		self.keystone = ksclient.Client(**self.creds)
+		self.nova = nvclient.Client(**self.creds)
+		glance_endpoint = keystone.service_catalog.url_for(service_type='image', endpoint_type='publicURL')
+		self.glance = glclient.Client(glance_endpoint, token=keystone.auth_token)
+
+		self.default_image = glance.images.list().next() # ['name']
