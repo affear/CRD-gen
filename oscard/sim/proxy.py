@@ -1,5 +1,8 @@
 from bottle import route, run, request, response
+from oslo.config import cfg
 from oscard.sim import api
+
+CONF = cfg.CONF
 nova_api = api.FakeAPI()
 
 @route('/create', method='POST')
@@ -21,4 +24,4 @@ def destroy():
 	response.status = status
 	return body
 
-run(host="localhost", port=3000)
+run(host=CONF.proxy_host, port=CONF.proxy_port)
