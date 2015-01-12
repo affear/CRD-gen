@@ -1,7 +1,6 @@
 from bottle import route, run, request, response
-from oscard.sim.api import NovaAPI
-
-nova_api = NovaAPI()
+from oscard.sim import api
+nova_api = api.FakeAPI()
 
 @route('/create', method='POST')
 def create():
