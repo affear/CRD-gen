@@ -10,7 +10,7 @@ oscard_opts = [
 	),
 	cfg.StrOpt(
 		name='proxy_host',
-		default='localhost',
+		default='0.0.0.0',
 		help='Oscard proxy host'
 	),
 	cfg.StrOpt(
