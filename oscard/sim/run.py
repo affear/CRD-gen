@@ -14,8 +14,8 @@ CONF = cfg.CONF
 CONF.register_group(sim_group)
 CONF.register_opts(sim_opts, sim_group)
 
-from oscard.sim import api as nova_api
-api = nova_api.NovaAPI()
+from oscard.sim.api import OscardAPI
+api = OscardAPI()
 
 # Virtual classes for commands
 class BaseCommand(object):
