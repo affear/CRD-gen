@@ -19,19 +19,9 @@ oscard_opts = [
 		help='OpenStack controller host'
 	),
 	cfg.IntOpt(
-		name='glance_port',
-		default=9292,
-		help='Glance port'
-	),
-	cfg.IntOpt(
 		name='keystone_port',
-		default=35357,
+		default=5000,
 		help='Keystone port'
-	),
-	cfg.IntOpt(
-		name='nova-api_port',
-		default=8773,
-		help='Nova API port'
 	),
 	cfg.StrOpt(
 		name='os_username',
@@ -104,20 +94,93 @@ class OscardAPI(CRDAPI):
 
 from keystoneclient.v2_0 import client as ksclient
 from novaclient.v1_1 import client as nvclient
-from glanceclient.v2 import client as glclient
 class NovaAPI(CRDAPI):
 	_baseurl = 'http://' + CONF.ctrl_host
+	_instance_basename = 'fake'
 
+	@property
+	def kcreds(self):
+		return {
+			'username': self._os_username,
+			'password': self._os_password,
+			'auth_url': self._os_auth_url,
+			'tenant_name': self._os_tenant_name
+		}
+
+	@property
+	def ncreds(self):
+		return {
+			'username': self._os_username,
+			'api_key': self._os_password,
+			'auth_url': self._os_auth_url,
+			'project_id': self._os_tenant_name
+		}
+	
 	def __init__(self):
-		self.creds = {}
-		self.creds['auth_url'] = self._baseurl + ':' + str(CONF.keystone_port) + '/v2.0'
-		self.creds['username'] = CONF.os_username
-		self.creds['password'] = CONF.os_password
-		self.creds['tenant_name'] = CONF.os_tenant
+		self._curr_id = 0
+		self._os_auth_url = self._baseurl + ':' + str(CONF.keystone_port) + '/v2.0'
+		self._os_username = CONF.os_username
+		self._os_password = CONF.os_password
+		self._os_tenant_name = CONF.os_tenant
 
-		self.keystone = ksclient.Client(**self.creds)
-		self.nova = nvclient.Client(**self.creds)
-		glance_endpoint = keystone.service_catalog.url_for(service_type='image', endpoint_type='publicURL')
-		self.glance = glclient.Client(glance_endpoint, token=keystone.auth_token)
+		self.keystone = ksclient.Client(**self.kcreds)
+		self.nova = nvclient.Client(**self.ncreds)
 
-		self.default_image = glance.images.list().next() # ['name']
+		self.image = nova.images.find(name='cirros') # ['name']
+		# assigning all flavors
+		self.flavors = {}
+		for i in xrange(5):
+			self.flavors[i] = nova.flavors.get(i)
+
+	def create(self, **kwargs):
+		'''
+			Creates a new instance.
+			This call is blocking untill the instance reaches an ACTIVE status,
+			or fails
+		'''
+		flavor = kwargs.get('flavor', None)
+		if not flavor:
+			return {'msg': 'flavor not in kwargs'}, 400
+
+		instance = self.nova.servers.create(
+			name=self._instance_basename + str(self.curr_id),
+			image=self.image,
+			flavor=flavor
+		)
+
+		# Poll at 2 second intervals, until the status is no longer 'BUILD'
+		status = instance.status
+		while status == 'BUILD':
+			time.sleep(2)
+			# Retrieve the instance again so the status field updates
+			instance = nova.servers.get(instance.id)
+			status = instance.status
+		
+		if status == 'ACTIVE':
+			# ok the machine is up
+			return {'id': instance.id}, 201
+
+		return {'msg': 'error on build', 'status': status}, 400
+
+	def resize(self, **kwargs):
+		id = kwargs.get('id', None)
+		flavor = kwargs.get('flavor', None)
+		if not id:
+			return {'msg': 'id not in kwargs'}, 400
+		if not flavor:
+			return {'msg': 'flavor not in kwargs'}, 400
+
+		server = self.nova.servers.get(id)
+		server.resize(flavor)
+
+		return {'resized': id}, 200
+
+	def destroy(self, **kwargs):
+		id = kwargs.get('id', None)
+		if not id:
+			return {'msg': 'id not in kwargs'}, 400
+
+		server = self.nova.servers.get(id)
+		server.delete()
+
+		return {'deleted': id}, 204
