@@ -1,4 +1,4 @@
-import urllib, urllib2
+import urllib, urllib2, time
 from oslo.config import cfg
 from oscard import log
 
@@ -126,11 +126,19 @@ class NovaAPI(CRDAPI):
 		self.keystone = ksclient.Client(**self.kcreds)
 		self.nova = nvclient.Client(**self.ncreds)
 
-		self.image = nova.images.find(name='cirros') # ['name']
-		# assigning all flavors
+		# assigning to self.image the first cirros image
+		# or the first image possible
+		images = self.nova.images.list()
+		self.image = images[0]
+		for img in images:
+			if img.name.startswith('cirros'):
+				self.image = img
+				break
+
+		# assigning all 5 flavors
 		self.flavors = {}
-		for i in xrange(5):
-			self.flavors[i] = nova.flavors.get(i)
+		for i in xrange(1, 6):
+			self.flavors[i] = self.nova.flavors.get(i)
 
 	def create(self, **kwargs):
 		'''
@@ -153,7 +161,7 @@ class NovaAPI(CRDAPI):
 		while status == 'BUILD':
 			time.sleep(2)
 			# Retrieve the instance again so the status field updates
-			instance = nova.servers.get(instance.id)
+			instance = self.nova.servers.get(instance.id)
 			status = instance.status
 		
 		if status == 'ACTIVE':
