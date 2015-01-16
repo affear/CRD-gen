@@ -1,18 +1,8 @@
-import urllib, urllib2, time
+import time
 from oslo.config import cfg
 from oscard import log
 
 oscard_opts = [
-	cfg.IntOpt(
-		name='proxy_port',
-		default=3000,
-		help='Oscard proxy port'
-	),
-	cfg.StrOpt(
-		name='proxy_host',
-		default='0.0.0.0',
-		help='Oscard proxy host'
-	),
 	cfg.StrOpt(
 		name='ctrl_host',
 		default='localhost',
@@ -59,38 +49,26 @@ class CRDAPI(object):
 class FakeAPI(CRDAPI):
 
 	def create(self, **kwargs):
-		LOG.info("novapi: create")
-		return {"body": "created"}, 200
+		from random import randint
+		payload = {'id': randint(0, 1000), 'args': kwargs}
+		LOG.info('fakeapi: create --> ' + str(payload))
+		return payload, 200
 
 	def resize(self, **kwargs):
-		LOG.info("novapi: resize")
-		return {"body": "resized"}, 200
+		payload = {'body': 'resized', 'args': kwargs}
+		LOG.info('fakeapi: resize --> ' + str(payload))
+		return payload, 200
 
 	def destroy(self, **kwargs):
-		LOG.info("novapi: destroy")
-		return {"body": "destroyed"}, 200
+		payload = {'body': 'destroyed', 'args': kwargs}
+		LOG.info('fakeapi: destroy --> ' + str(payload))
+		return payload, 200
 
-class OscardAPI(CRDAPI):
-
-	# this should be the proxy url
-	_baseurl = 'http://' + CONF.proxy_host + ':' + str(CONF.proxy_port)
-
-	def _send_request(self, endpoint='', **kwargs):
-		import json, os
-		url = os.path.join(self._baseurl, endpoint)
-		data = urllib.urlencode(kwargs)
-		req = urllib2.Request(url, data)
-		response = urllib2.urlopen(req)
-		return json.loads(response.read())
-
-	def create(self, **kwargs):
-		return self._send_request('create', **kwargs)
-
-	def resize(self, **kwargs):
-		return self._send_request('resize', **kwargs)
-
-	def destroy(self, **kwargs):
-		return self._send_request('destroy', **kwargs)
+	@property
+	def flavors(self):
+		payload = {1: 'tiny', 2: 'small'}
+		LOG.info('fakeapi: flavors --> ' + str(payload))
+		return payload
 
 from keystoneclient.v2_0 import client as ksclient
 from novaclient.v1_1 import client as nvclient
@@ -166,6 +144,7 @@ class NovaAPI(CRDAPI):
 		
 		if status == 'ACTIVE':
 			# ok the machine is up
+			self._curr_id += 1
 			return {'id': instance.id}, 201
 
 		return {'msg': 'error on build', 'status': status}, 400
@@ -180,6 +159,7 @@ class NovaAPI(CRDAPI):
 
 		server = self.nova.servers.get(id)
 		server.resize(flavor)
+		server.confirm_resize()
 
 		return {'resized': id}, 200
 
