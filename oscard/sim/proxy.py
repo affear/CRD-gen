@@ -20,6 +20,8 @@ CONF = cfg.CONF
 CONF.register_opts(proxy_opts)
 LOG = log.get_logger(__name__)
 
+# init conf before importing api.
+# if not ctr_host wouldn't be initialized
 config.init_conf()
 from oscard.sim import api
 
