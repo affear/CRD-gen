@@ -1,4 +1,4 @@
-import time
+import time, random
 from oslo.config import cfg
 from oscard import log
 
@@ -49,8 +49,7 @@ class CRDAPI(object):
 class FakeAPI(CRDAPI):
 
 	def create(self, **kwargs):
-		from random import randint
-		payload = {'id': randint(0, 1000), 'args': kwargs}
+		payload = {'id': random.randint(0, 1000), 'args': kwargs}
 		LOG.info('fakeapi: create --> ' + str(payload))
 		return payload, 200
 
@@ -118,10 +117,7 @@ class NovaAPI(CRDAPI):
 			This call is blocking untill the instance reaches an ACTIVE status,
 			or fails
 		'''
-		flavor_id = kwargs.get('flavor_id', None)
-		if not flavor_id:
-			return {'msg': 'flavor_id not in kwargs'}, 400
-
+		flavor_id = random.choice(self.flavors.keys())
 		flavor = self.flavors[flavor_id]
 
 		instance = self.nova.servers.create(
@@ -147,15 +143,18 @@ class NovaAPI(CRDAPI):
 
 	def resize(self, **kwargs):
 		id = kwargs.get('id', None)
-		flavor_id = kwargs.get('flavor_id', None)
 		if not id:
 			return {'msg': 'id not in kwargs'}, 400
-		if not flavor_id:
-			return {'msg': 'flavor_id not in kwargs'}, 400
-
-		flavor = self.flavors[flavor_id]
 
 		server = self.nova.servers.get(id)
+
+		# remove the already chosen flavor from
+		# flavors ids
+		flavors_ok = self.flavors.keys()
+		flavors_ok.remove(int(server.flavor['id']))
+		flavor_id = random.choice(flavors_ok)
+
+		flavor = self.flavors[flavor_id]
 		server.resize(flavor)
 		#server.confirm_resize()
 
