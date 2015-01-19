@@ -108,3 +108,15 @@ def main():
 			LOG.info(p.host + ': ' + str(t) + ' --> ' + cmd.name)
 			
 			ctxts[p.host] = cmd.execute(p, ctxts[p.host])
+
+		LOG.info(p.host + ': simulation ENDED')
+
+		# TODO remove these lines
+		LOG.info(p.host + ' destroying all remaining instances in 60 seconds')
+		for t in xrange(1, 61):
+			if t % 5 == 0:
+				LOG.info(str(60 - t) + ' seconds to destroy...')
+			time.sleep(1)
+
+		for id in ctxts[p.host]:
+			p.destroy(id=id)
