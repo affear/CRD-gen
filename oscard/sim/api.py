@@ -126,10 +126,10 @@ class NovaAPI(CRDAPI):
 			flavor=flavor
 		)
 
-		# Poll at 2 second intervals, until the status is no longer 'BUILD'
+		# Poll at 1 second intervals, until the status is no longer 'BUILD'
 		status = instance.status
 		while status == 'BUILD':
-			time.sleep(2)
+			time.sleep(1)
 			# Retrieve the instance again so the status field updates
 			instance = self.nova.servers.get(instance.id)
 			status = instance.status
@@ -142,6 +142,10 @@ class NovaAPI(CRDAPI):
 		return {'msg': 'error on build', 'status': status}, 400
 
 	def resize(self, **kwargs):
+		'''
+			Blocking call untill the resize has been confirmed
+			and the instance is in status ACTIVE
+		'''
 		id = kwargs.get('id', None)
 		if not id:
 			return {'msg': 'id not in kwargs'}, 400
@@ -156,7 +160,22 @@ class NovaAPI(CRDAPI):
 
 		flavor = self.flavors[flavor_id]
 		server.resize(flavor)
-		#server.confirm_resize()
+
+		# WARNING:
+		# checking != on instance status seems to be
+		# a bad idea...
+		# it seems to be very easy to get a DEADLOCK...
+		status = server.status
+		while status != 'VERIFY_RESIZE':
+			time.sleep(1)
+			# Retrieve the instance again so the status field updates
+			server = self.nova.servers.get(server.id)
+			status = server.status
+
+		server.confirm_resize()
+
+		while status != 'ACTIVE':
+			time.sleep(1)
 
 		return {'resized': id}, 200
 
