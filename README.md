@@ -13,6 +13,12 @@ Create, Resize and Delete instance operations generator for OpenStack's Nova API
 	$ docker run -ti -p 80:3000 affear/oscard:ok
 ```
 
+While developing:
+
+```
+	$ docker run -v $(pwd):/oscard --name oscard -p 3000:3000 --rm affear/oscard:ok
+```
+
 ### WARNING
 Before running the simulation, remeber to update quotas for the tenant in use.  
 If not you will cause exceptions while spawning lots of intances!  
