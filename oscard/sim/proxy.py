@@ -9,13 +9,22 @@ proxy_opts = [
 		name='proxy_port',
 		default=3000,
 		help='Oscard proxy port'
+	),
+	cfg.BoolOpt(
+		name='fake',
+		default=True,
+		help='Fake simulation or not?'
 	)
 ]
 
 CONF = cfg.CONF
 CONF.register_opts(proxy_opts)
 
-nova_api = api.FakeAPI()
+nova_api = None
+if CONF.fake:
+	nova_api = api.FakeAPI()
+else:
+	nova_api = api.NovaAPI()
 
 @route('/create', method='POST')
 def create():
