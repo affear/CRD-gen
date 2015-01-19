@@ -12,3 +12,15 @@ Create, Resize and Delete instance operations generator for OpenStack's Nova API
 ```
 	$ docker run -ti -p 80:3000 affear/oscard:ok
 ```
+
+### WARNING
+Before running the simulation, remeber to update quotas for the tenant in use.  
+If not you will cause exceptions while spawning lots of intances!  
+So, from the controller:
+
+```
+	$ export BIGNUM=100000000
+	$ nova quota-class-update --instances $BIGNUM default
+	$ nova quota-class-update --cores $BIGNUM default
+	$ nova quota-class-update --ram $BIGNUM default
+```
