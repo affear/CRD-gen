@@ -9,11 +9,6 @@ proxy_opts = [
 		name='proxy_port',
 		default=3000,
 		help='Oscard proxy port'
-	),
-	cfg.StrOpt(
-		name='proxy_host',
-		default='0.0.0.0',
-		help='Oscard proxy host'
 	)
 ]
 
@@ -50,8 +45,10 @@ class ProxyAPI(api.CRDAPI):
 	'''
 		The API to access the proxy
 	'''
-	# this should be the proxy url
-	_baseurl = 'http://' + CONF.proxy_host + ':' + str(CONF.proxy_port)
+
+	def __init__(self, host):
+		self.host = host
+		self._baseurl = 'http://' + host
 
 	def _send_request(self, endpoint='', method='GET', **kwargs):
 		import json, os
@@ -86,4 +83,4 @@ class ProxyAPI(api.CRDAPI):
 		return self._send_request('flavors')
 
 if __name__ == '__main__':
-	run(host=CONF.proxy_host, port=CONF.proxy_port)
+	run(host='0.0.0.0', port=CONF.proxy_port)

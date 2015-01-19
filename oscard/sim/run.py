@@ -10,6 +10,11 @@ sim_opts = [
 		default=10,
 		help='The number of steps of the simulation'
 	),
+	cfg.ListOpt(
+		name='proxy_hosts',
+		default=['0.0.0.0:3000', ],
+		help='Oscard proxy host'
+	)
 ]
 
 CONF = cfg.CONF
@@ -17,8 +22,10 @@ CONF.register_group(sim_group)
 CONF.register_opts(sim_opts, sim_group)
 LOG = log.get_logger(__name__)
 
-api = ProxyAPI()
-FLAVORS = api.flavors()
+proxies = [ProxyAPI(host) for host in CONF.sim.proxy_hosts]
+
+# ask only to one proxy for flavors
+FLAVORS = proxies[0].flavors()
 
 # Virtual classes for commands
 class BaseCommand(object):
@@ -27,7 +34,7 @@ class BaseCommand(object):
 	'''
 	name = 'base_command'
 
-	def execute(self, ctxt):
+	def execute(self, proxy, ctxt):
 		# invoke nova apis
 		# use context
 		# return new context
@@ -39,13 +46,13 @@ class BaseCommand(object):
 class CreateCommand(BaseCommand):
 	name = 'create'
 
-	def execute(self, ctxt):
+	def execute(self, proxy, ctxt):
 		kwargs = {
 			'flavor': FLAVORS[random.choice(FLAVORS.keys())],
 		}
 
 		try:
-			ans = api.create(**kwargs)
+			ans = proxy.create(**kwargs)
 			ctxt.append(ans['id'])
 		except exceptions.GenericException as e:
 			LOG.error(e.message)
@@ -55,10 +62,10 @@ class CreateCommand(BaseCommand):
 class DestroyCommand(BaseCommand):
 	name = 'destroy'
 
-	def execute(self, ctxt):
+	def execute(self, proxy, ctxt):
 		id = random.choice(ctxt)
 		try:
-			api.destroy()
+			proxy.destroy()
 			ctxt.remove(id)
 		except exceptions.GenericException as e:
 			LOG.error(e.message)
@@ -68,14 +75,14 @@ class DestroyCommand(BaseCommand):
 class ResizeCommand(BaseCommand):
 	name = 'resize'
 
-	def execute(self, ctxt):
+	def execute(self, proxy, ctxt):
 		kwargs = {
 			'id': random.choice(ctxt),
 			'flavor': FLAVORS[random.choice(FLAVORS.keys())]
 		}
 
 		try:
-			api.resize(**kwargs)
+			proxy.resize(**kwargs)
 		except exceptions.GenericException as e:
 			LOG.error(e.message)
 		finally:
@@ -93,13 +100,17 @@ def main():
 		DestroyCommand,
 	]
 
-	IDS = []
+	ctxts = {}
+	for p in proxies:
+		ctxts[p.host] = []
 
-	for t in xrange(CONF.sim.no_t):
-		if len(IDS) > 0:
-			cmd = random.choice(cmds)()
-		else: #there are no virtual machines... let's spawn one!
-			cmd = CreateCommand()
+	for p in proxies:
+		for t in xrange(CONF.sim.no_t):
+			if len(ctxts[p.host]) > 0:
+				cmd = random.choice(cmds)()
+			else: #there are no virtual machines... let's spawn one!
+				cmd = CreateCommand()
+				
+			LOG.info(p.host + ': ' + str(t) + ' --> ' + cmd.name)
 			
-		LOG.info(str(t) + ' --> ' + cmd.name)
-		IDS = cmd.execute(IDS)
+			ctxts[p.host] = cmd.execute(p, ctxts[p.host])
