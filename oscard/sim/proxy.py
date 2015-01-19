@@ -1,7 +1,6 @@
 from bottle import route, run, request, response
 from oslo.config import cfg
-from oscard.sim import api
-from oscard import exceptions
+from oscard import exceptions, log, config
 import urllib, urllib2
 
 proxy_opts = [
@@ -19,11 +18,17 @@ proxy_opts = [
 
 CONF = cfg.CONF
 CONF.register_opts(proxy_opts)
+LOG = log.get_logger(__name__)
+
+config.init_conf()
+from oscard.sim import api
 
 nova_api = None
 if CONF.fake:
+	LOG.info('using FakeAPI')
 	nova_api = api.FakeAPI()
 else:
+	LOG.info('using NovaAPI')
 	nova_api = api.NovaAPI()
 
 @route('/create', method='POST')
@@ -42,12 +47,6 @@ def resize():
 def destroy():
 	body, status = nova_api.destroy(**request.json)
 	response.status = status
-	return body
-
-@route('/flavors', method='GET')
-def flavors():
-	body = nova_api.flavors
-	response.status = 200
 	return body
 
 class ProxyAPI(api.CRDAPI):
@@ -87,9 +86,6 @@ class ProxyAPI(api.CRDAPI):
 
 	def destroy(self, **kwargs):
 		return self._send_request('destroy', method='POST', **kwargs)
-
-	def flavors(self):
-		return self._send_request('flavors')
 
 if __name__ == '__main__':
 	run(host='0.0.0.0', port=CONF.proxy_port)

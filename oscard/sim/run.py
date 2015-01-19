@@ -23,9 +23,7 @@ CONF.register_opts(sim_opts, sim_group)
 LOG = log.get_logger(__name__)
 
 proxies = [ProxyAPI(host) for host in CONF.sim.proxy_hosts]
-
-# ask only to one proxy for flavors
-FLAVORS = proxies[0].flavors()
+FLAVOR_IDS = xrange(1, 6) 
 
 # Virtual classes for commands
 class BaseCommand(object):
@@ -48,7 +46,7 @@ class CreateCommand(BaseCommand):
 
 	def execute(self, proxy, ctxt):
 		kwargs = {
-			'flavor': FLAVORS[random.choice(FLAVORS.keys())],
+			'flavor_id': random.choice(FLAVOR_IDS),
 		}
 
 		try:
@@ -63,9 +61,11 @@ class DestroyCommand(BaseCommand):
 	name = 'destroy'
 
 	def execute(self, proxy, ctxt):
-		id = random.choice(ctxt)
+		kwargs = {
+			'id': random.choice(ctxt)
+		}
 		try:
-			proxy.destroy()
+			proxy.destroy(**kwargs)
 			ctxt.remove(id)
 		except exceptions.GenericException as e:
 			LOG.error(e.message)
@@ -78,7 +78,7 @@ class ResizeCommand(BaseCommand):
 	def execute(self, proxy, ctxt):
 		kwargs = {
 			'id': random.choice(ctxt),
-			'flavor': FLAVORS[random.choice(FLAVORS.keys())]
+			'flavor_id': random.choice(FLAVOR_IDS)
 		}
 
 		try:
