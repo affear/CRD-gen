@@ -1,5 +1,5 @@
 from oslo.config import cfg
-import random
+import random, traceback
 from oscard import log
 from oscard.sim.proxy import ProxyAPI
 
@@ -48,7 +48,7 @@ class CreateCommand(BaseCommand):
 			ans = proxy.create()
 			ctxt.append(ans['id'])
 		except Exception as e:
-			LOG.error(e.message)
+			LOG.error(traceback.format_exc())
 		finally:
 			return ctxt
 
@@ -62,7 +62,7 @@ class DestroyCommand(BaseCommand):
 			proxy.destroy(id=id)
 			ctxt.remove(id)
 		except Exception as e:
-			LOG.error(e.message)
+			LOG.error(traceback.format_exc())
 		finally:
 			return ctxt
 
@@ -77,7 +77,7 @@ class ResizeCommand(BaseCommand):
 		try:
 			proxy.resize(**kwargs)
 		except Exception as e:
-			LOG.error(e.message)
+			LOG.error(traceback.format_exc())
 		finally:
 			return ctxt
 
