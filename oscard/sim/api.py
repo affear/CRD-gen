@@ -68,6 +68,7 @@ from novaclient.v1_1 import client as nvclient
 class NovaAPI(CRDAPI):
 	_baseurl = 'http://' + CONF.ctrl_host
 	_instance_basename = 'fake'
+	_TIMEOUT = 10 # preventing deadlocks
 
 	@property
 	def kcreds(self):
@@ -127,9 +128,11 @@ class NovaAPI(CRDAPI):
 		)
 
 		# Poll at 1 second intervals, until the status is no longer 'BUILD'
+		time_to_wait = 0
 		status = instance.status
-		while status == 'BUILD':
+		while status == 'BUILD' and time_to_wait < self._TIMEOUT:
 			time.sleep(1)
+			time_to_wait += 1
 			# Retrieve the instance again so the status field updates
 			instance = self.nova.servers.get(instance.id)
 			status = instance.status
@@ -161,21 +164,30 @@ class NovaAPI(CRDAPI):
 		flavor = self.flavors[flavor_id]
 		server.resize(flavor)
 
-		# WARNING:
-		# checking != on instance status seems to be
-		# a bad idea...
-		# it seems to be very easy to get a DEADLOCK...
+		time_to_wait = 0
 		status = server.status
-		while status != 'VERIFY_RESIZE':
+		while status != 'VERIFY_RESIZE' and time_to_wait < self._TIMEOUT:
 			time.sleep(1)
+			time_to_wait += 1
 			# Retrieve the instance again so the status field updates
 			server = self.nova.servers.get(server.id)
 			status = server.status
 
+		if status != 'VERIFY_RESIZE' and time_to_wait == self._TIMEOUT:
+			return {'msg': 'timeout exceeded on resize'}, 400
+
 		server.confirm_resize()
 
-		while status != 'ACTIVE':
+		time_to_wait = 0
+		status = server.status
+		while status != 'ACTIVE' and time_to_wait < self._TIMEOUT:
 			time.sleep(1)
+			time_to_wait += 1
+			server = self.nova.servers.get(server.id)
+			status = server.status
+
+		if status != 'ACTIVE' and time_to_wait == self._TIMEOUT:
+			return {'msg': 'timeout exceeded on confirm_resize'}, 400
 
 		return {'resized': id}, 200
 
