@@ -1,6 +1,17 @@
 # OSCARD
 Create, Resize and Delete instance operations generator for OpenStack's Nova APIs
 
+### Install (not Dockerized)
+
+```
+	$ git clone https://github.com/affear/oscard.git
+	$ cd oscard
+	$ sudo apt-get install -y python-virtualenv python-dev libffi-dev libssl-dev
+	$ virtualenv venv
+	$ source oscardrc
+	$ pip install -r requirements.txt
+```
+
 ### Build
 
 ```
