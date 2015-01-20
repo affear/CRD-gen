@@ -56,11 +56,10 @@ class DestroyCommand(BaseCommand):
 	name = 'destroy'
 
 	def execute(self, proxy, ctxt):
-		kwargs = {
-			'id': random.choice(ctxt)
-		}
+		id = random.choice(ctxt)
+
 		try:
-			proxy.destroy(**kwargs)
+			proxy.destroy(id=id)
 			ctxt.remove(id)
 		except exceptions.GenericException as e:
 			LOG.error(e.message)
