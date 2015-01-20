@@ -1,6 +1,6 @@
 from bottle import route, run, request, response
 from oslo.config import cfg
-from oscard import exceptions, log, config
+from oscard import log, config
 import urllib, urllib2
 
 proxy_opts = [
@@ -77,7 +77,7 @@ class ProxyAPI(api.CRDAPI):
 		body = json.loads(response.read())
 		if status == 400:
 			# bad request
-			raise exceptions.GenericException(body['msg'])
+			raise Exception(body['msg'])
 		return body
 
 	def create(self, **kwargs):

@@ -1,6 +1,6 @@
 from oslo.config import cfg
 import random
-from oscard import exceptions, log
+from oscard import log
 from oscard.sim.proxy import ProxyAPI
 
 sim_group = cfg.OptGroup(name='sim')
@@ -47,7 +47,7 @@ class CreateCommand(BaseCommand):
 		try:
 			ans = proxy.create()
 			ctxt.append(ans['id'])
-		except exceptions.GenericException as e:
+		except Exception as e:
 			LOG.error(e.message)
 		finally:
 			return ctxt
@@ -61,7 +61,7 @@ class DestroyCommand(BaseCommand):
 		try:
 			proxy.destroy(id=id)
 			ctxt.remove(id)
-		except exceptions.GenericException as e:
+		except Exception as e:
 			LOG.error(e.message)
 		finally:
 			return ctxt
@@ -76,7 +76,7 @@ class ResizeCommand(BaseCommand):
 
 		try:
 			proxy.resize(**kwargs)
-		except exceptions.GenericException as e:
+		except Exception as e:
 			LOG.error(e.message)
 		finally:
 			return ctxt
