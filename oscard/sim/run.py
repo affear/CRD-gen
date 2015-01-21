@@ -45,8 +45,10 @@ class CreateCommand(BaseCommand):
 
 	def execute(self, proxy, ctxt):
 		try:
-			ans = proxy.create()
-			ctxt.append(ans['id'])
+			resp = proxy.create()
+			ctxt.append(resp['id'])
+
+			LOG.info(str(resp))
 		except Exception as e:
 			LOG.error(traceback.format_exc())
 		finally:
@@ -56,11 +58,11 @@ class DestroyCommand(BaseCommand):
 	name = 'destroy'
 
 	def execute(self, proxy, ctxt):
-		id = random.choice(ctxt)
-
 		try:
-			proxy.destroy(id=id)
-			ctxt.remove(id)
+			resp = proxy.destroy()
+			ctxt.remove(resp['id'])
+
+			LOG.info(str(resp))
 		except Exception as e:
 			LOG.error(traceback.format_exc())
 		finally:
@@ -70,12 +72,10 @@ class ResizeCommand(BaseCommand):
 	name = 'resize'
 
 	def execute(self, proxy, ctxt):
-		kwargs = {
-			'id': random.choice(ctxt),
-		}
-
 		try:
-			proxy.resize(**kwargs)
+			resp = proxy.resize()
+
+			LOG.info(str(resp))
 		except Exception as e:
 			LOG.error(traceback.format_exc())
 		finally:

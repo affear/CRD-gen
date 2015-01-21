@@ -87,6 +87,11 @@ class NovaAPI(CRDAPI):
 			'auth_url': self._os_auth_url,
 			'project_id': self._os_tenant_name
 		}
+
+	@property
+	def server_ids(self):
+		servers = self.nova.servers.list()
+		return [s.id for s in servers]
 	
 	def __init__(self):
 		self._curr_id = 0
@@ -149,10 +154,8 @@ class NovaAPI(CRDAPI):
 			Blocking call untill the resize has been confirmed
 			and the instance is in status ACTIVE
 		'''
-		id = kwargs.get('id', None)
-		if not id:
-			return {'msg': 'id not in kwargs'}, 400
-
+		
+		id = random.choice(self.server_ids)
 		server = self.nova.servers.get(id)
 
 		# remove the already chosen flavor from
@@ -189,14 +192,12 @@ class NovaAPI(CRDAPI):
 		if status != 'ACTIVE' and time_to_wait == self._TIMEOUT:
 			return {'msg': 'timeout exceeded on confirm_resize'}, 400
 
-		return {'resized': id}, 200
+		return {'id': id}, 200
 
 	def destroy(self, **kwargs):
-		id = kwargs.get('id', None)
-		if not id:
-			return {'msg': 'id not in kwargs'}, 400
+		id = random.choice(self.server_ids)
 
 		server = self.nova.servers.get(id)
 		server.delete()
 
-		return {'deleted': id}, 204
+		return {'id': id}, 204
