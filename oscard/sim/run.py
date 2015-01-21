@@ -113,11 +113,11 @@ def main():
 		# TODO remove these lines
 		import time
 		LOG.info(p.host + ': destroying all remaining instances in 60 seconds')
-		for t in xrange(1, 61):
+		for t in xrange(1, 31):
 			if t % 5 == 0:
-				LOG.info(str(60 - t) + ' seconds to destroy...')
+				LOG.info(str(30 - t) + ' seconds to destroy...')
 			time.sleep(1)
 
-		for id in counts[p.host]:
+		for times in xrange(counts[p.host]):
 			resp = p.destroy()
 			LOG.info(str(resp))
