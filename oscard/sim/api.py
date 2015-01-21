@@ -200,4 +200,4 @@ class NovaAPI(CRDAPI):
 		server = self.nova.servers.get(id)
 		server.delete()
 
-		return {'id': id}, 204
+		return {'id': id}, 200
