@@ -31,7 +31,7 @@ class BaseCommand(object):
 	'''
 	name = 'base_command'
 
-	def execute(self, proxy, ctxt):
+	def execute(self, proxy, count):
 		# invoke nova apis
 		# use context
 		# return new context
@@ -43,35 +43,35 @@ class BaseCommand(object):
 class CreateCommand(BaseCommand):
 	name = 'create'
 
-	def execute(self, proxy, ctxt):
+	def execute(self, proxy, count):
 		try:
 			resp = proxy.create()
-			ctxt.append(resp['id'])
+			count += 1
 
 			LOG.info(str(resp))
 		except Exception as e:
 			LOG.error(traceback.format_exc())
 		finally:
-			return ctxt
+			return count
 
 class DestroyCommand(BaseCommand):
 	name = 'destroy'
 
-	def execute(self, proxy, ctxt):
+	def execute(self, proxy, count):
 		try:
 			resp = proxy.destroy()
-			ctxt.remove(resp['id'])
+			count -= 1
 
 			LOG.info(str(resp))
 		except Exception as e:
 			LOG.error(traceback.format_exc())
 		finally:
-			return ctxt
+			return count
 
 class ResizeCommand(BaseCommand):
 	name = 'resize'
 
-	def execute(self, proxy, ctxt):
+	def execute(self, proxy, count):
 		try:
 			resp = proxy.resize()
 
@@ -79,7 +79,7 @@ class ResizeCommand(BaseCommand):
 		except Exception as e:
 			LOG.error(traceback.format_exc())
 		finally:
-			return ctxt
+			return count
 
 def main():
 	from oscard import config, log
@@ -93,20 +93,20 @@ def main():
 		DestroyCommand,
 	]
 
-	ctxts = {}
+	counts = {}
 	for p in proxies:
-		ctxts[p.host] = []
+		counts[p.host] = 0
 
 	for p in proxies:
 		for t in xrange(CONF.sim.no_t):
-			if len(ctxts[p.host]) > 0:
+			if counts[p.host] > 0:
 				cmd = random.choice(cmds)()
 			else: #there are no virtual machines... let's spawn one!
 				cmd = CreateCommand()
 				
 			LOG.info(p.host + ': ' + str(t) + ' --> ' + cmd.name)
 			
-			ctxts[p.host] = cmd.execute(p, ctxts[p.host])
+			counts[p.host] = cmd.execute(p, counts[p.host])
 
 		LOG.info(p.host + ': simulation ENDED')
 
@@ -118,5 +118,6 @@ def main():
 				LOG.info(str(60 - t) + ' seconds to destroy...')
 			time.sleep(1)
 
-		for id in ctxts[p.host]:
-			p.destroy(id=id)
+		for id in counts[p.host]:
+			resp = p.destroy()
+			LOG.info(str(resp))
