@@ -212,3 +212,26 @@ class NovaAPI(CRDAPI):
 				break
 
 		return {'id': id}, 200
+
+	def snapshot(self):
+		ans = {}
+		hosts = self.nova.hypervisors.list()
+		# retrieve only active hosts
+		filter(lambda h: h.vcpus_used != 0, hosts)
+
+		#####
+		# if you want to retrieve the host from the server:
+		#
+		# instance = api.nova.servers.list()[0]
+		# hostname = getattr(instance, 'OS-EXT-SRV-ATTR:hypervisor_hostname')
+		# host = api.nova.hypervisors.find(hypervisor_hostname=hostname)
+		#####
+
+		for h in hosts:
+			ans[h.hypervisor_hostname] = {
+				'vcpus': h.vcpus,
+				'vcpus_used': h.vcpus_used,
+				'memory_mb': h.memory_mb,
+				'memory_mb_used': h.memory_mb_used,
+			}
+		return ans
