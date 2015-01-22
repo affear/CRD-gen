@@ -65,10 +65,12 @@ class FakeAPI(CRDAPI):
 
 from keystoneclient.v2_0 import client as ksclient
 from novaclient.v1_1 import client as nvclient
+from novaclient.exceptions import NotFound
 class NovaAPI(CRDAPI):
 	_baseurl = 'http://' + CONF.ctrl_host
 	_instance_basename = 'fake'
 	_TIMEOUT = 10 # preventing deadlocks
+	_POLL_TIME = 0.5 # polling time
 
 	@property
 	def kcreds(self):
@@ -133,11 +135,11 @@ class NovaAPI(CRDAPI):
 		)
 
 		# Poll at 1 second intervals, until the status is no longer 'BUILD'
-		time_to_wait = 0
+		waiting_time = 0
 		status = instance.status
-		while status == 'BUILD' and time_to_wait < self._TIMEOUT:
-			time.sleep(1)
-			time_to_wait += 1
+		while status == 'BUILD' and waiting_time < self._TIMEOUT:
+			time.sleep(self._POLL_TIME)
+			waiting_time += 1
 			# Retrieve the instance again so the status field updates
 			instance = self.nova.servers.get(instance.id)
 			status = instance.status
@@ -167,29 +169,29 @@ class NovaAPI(CRDAPI):
 		flavor = self.flavors[flavor_id]
 		server.resize(flavor)
 
-		time_to_wait = 0
+		waiting_time = 0
 		status = server.status
-		while status != 'VERIFY_RESIZE' and time_to_wait < self._TIMEOUT:
-			time.sleep(1)
-			time_to_wait += 1
+		while status != 'VERIFY_RESIZE' and waiting_time < self._TIMEOUT:
+			time.sleep(self._POLL_TIME)
+			waiting_time += 1
 			# Retrieve the instance again so the status field updates
 			server = self.nova.servers.get(server.id)
 			status = server.status
 
-		if status != 'VERIFY_RESIZE' and time_to_wait == self._TIMEOUT:
+		if status != 'VERIFY_RESIZE' and waiting_time == self._TIMEOUT:
 			return {'msg': 'timeout exceeded on resize'}, 400
 
 		server.confirm_resize()
 
-		time_to_wait = 0
+		waiting_time = 0
 		status = server.status
-		while status != 'ACTIVE' and time_to_wait < self._TIMEOUT:
-			time.sleep(1)
-			time_to_wait += 1
+		while status != 'ACTIVE' and waiting_time < self._TIMEOUT:
+			time.sleep(self._POLL_TIME)
+			waiting_time += 1
 			server = self.nova.servers.get(server.id)
 			status = server.status
 
-		if status != 'ACTIVE' and time_to_wait == self._TIMEOUT:
+		if status != 'ACTIVE' and waiting_time == self._TIMEOUT:
 			return {'msg': 'timeout exceeded on confirm_resize'}, 400
 
 		return {'id': id}, 200
@@ -199,5 +201,14 @@ class NovaAPI(CRDAPI):
 
 		server = self.nova.servers.get(id)
 		server.delete()
+
+		while True:
+			time.sleep(self._POLL_TIME)
+			try:
+				self.nova.servers.get(id)
+			except NotFound:
+				# this means that the server is not found,
+				# so it has been really deleted!
+				break
 
 		return {'id': id}, 200
