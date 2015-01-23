@@ -21,7 +21,7 @@ class BifrostAPI(object):
 		return self.app.get('/last_sim_id', None)
 
 	def __init__(self):
-		if not self.seed:
+		if self.seed is None:
 			self.app.put('/', 'last_sim_id', -1)
 
 	def _seedpp(self):
@@ -63,12 +63,30 @@ class BifrostAPI(object):
 
 		data = {
 			'steps': steps,
-			'created_at': created_at,
+			'start': created_at,
 		}
 
 		for h in hosts_dict:
 			data[self._parse_host(h)] = {'type': hosts_dict[h]}
 
-		print data
-
 		return self.app.put('/sims', str(id), data)
+
+	def add_end_to_current_sim(self):
+		default_formatting = '%Y-%m-%d %H:%M:%S.%f'
+		id = self.seed
+
+		start = self.app.get('/sims/' + str(id), 'start')
+		start = datetime.datetime.strptime(start, default_formatting)
+		end = datetime.datetime.now()
+
+		delta = abs(end - start)
+		minutes = delta.seconds / 60
+		seconds = delta.seconds % 60
+
+		elapsed_time = str(minutes) + 'm:' + str(seconds) + 's'
+
+		data = {
+			'end': str(end),
+			'elapsed_time': elapsed_time
+		}
+		return self.app.patch('/sims/' + str(id), data)
