@@ -22,26 +22,34 @@ class BifrostAPI(object):
 
 	def __init__(self):
 		if not self.seed:
-			self.app.put('/', 'last_sim_id', 0)
+			self.app.put('/', 'last_sim_id', -1)
 
 	def _seedpp(self):
 		last_id = self.seed + 1
 		self.app.put('/', 'last_sim_id', last_id)
 		return last_id
 
-	def add_snapshot(self, step, command_name, snapshot, sim_id=None):
+	def add_snapshot(self, host, step, command_name, snapshot, sim_id=None):
 		if not sim_id:
 			sim_id = self.seed
 
-		data = {
-			'command': command_name,
-			'hosts': snapshot
-		}
+		snapshot['command'] = command_name
 
-		base_url = '/sims/' + str(sim_id) + '/snapshots'
-		return self.app.put(base_url, str(step), data)
+		base_url = '/sims/' + str(sim_id) + '/' + str(host) + '/snapshots'
+		return self.app.put(base_url, str(step), snapshot)
 
-	def add_sim(self, steps, type, id=None, created_at=None):
+	def add_sim(self, steps, hosts_dict, id=None, created_at=None):
+		'''
+			- steps: the number of steps
+			- hosts_dict: a dict with hostname as key and simulation
+				type as value. For instance:
+					{
+						'host1': 'normal',
+						'host2': 'smart',
+					}
+			- id: the simulation id
+			- created_at: creation time
+		'''
 		if not id:
 			id = self._seedpp()
 
@@ -50,8 +58,10 @@ class BifrostAPI(object):
 
 		data = {
 			'steps': steps,
-			'type': type,
 			'created_at': created_at,
 		}
+
+		for h in hosts_dict:
+			data[h] = {'type': hosts_dict[h]}
 
 		return self.app.put('/sims', str(id), data)
