@@ -234,4 +234,9 @@ class NovaAPI(CRDAPI):
 				'memory_mb': h.memory_mb,
 				'memory_mb_used': h.memory_mb_used,
 			}
-		return ans
+		return ans, 200
+
+	def is_smart(self):
+		services = self.nova.services.list()
+		names = [s.name for s in services]
+		return 'nova-consolidator' in names, 200

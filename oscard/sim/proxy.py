@@ -21,7 +21,7 @@ CONF.register_opts(proxy_opts)
 LOG = log.get_logger(__name__)
 
 # init conf before importing api.
-# if not ctr_host wouldn't be initialized
+# if not ctrl_host wouldn't be initialized
 config.init_conf()
 from oscard.sim import api
 
@@ -50,6 +50,25 @@ def destroy():
 	body, status = nova_api.destroy(**request.json)
 	response.status = status
 	return body
+
+@route('/snapshot', method='GET')
+def snapshot():
+	body, status = nova_api.snapshot()
+	response.status = status
+	return body
+
+@route('/smart', method='GET')
+def smart():
+	body, status = nova_api.is_smart()
+	response.status = status
+	return body
+
+@route('/seed', method='GET')
+def seed():
+	# TODO
+	# import collector
+	# use bifrost api to retrieve seed
+	return 1
 
 class ProxyAPI(api.CRDAPI):
 	'''
@@ -88,6 +107,15 @@ class ProxyAPI(api.CRDAPI):
 
 	def destroy(self, **kwargs):
 		return self._send_request('destroy', method='POST', **kwargs)
+
+	def snapshot(self):
+		return self._send_request('snapshot', method='GET')
+
+	def is_smart(self):
+		return self._send_request('smart', method='GET')
+
+	def seed(self):
+		return self._send_request('seed', method='GET')
 
 if __name__ == '__main__':
 	run(host='0.0.0.0', port=CONF.proxy_port)
