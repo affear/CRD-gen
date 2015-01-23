@@ -5,6 +5,7 @@ from oslo.config import cfg
 import random, traceback
 from oscard import log
 from oscard.sim.proxy import ProxyAPI
+from oscard.sim.collector import BifrostAPI
 
 sim_group = cfg.OptGroup(name='sim')
 sim_opts = [
@@ -26,6 +27,7 @@ CONF.register_opts(sim_opts, sim_group)
 LOG = log.get_logger(__name__)
 
 proxies = [ProxyAPI(host) for host in CONF.sim.proxy_hosts]
+bifrost = BifrostAPI()
 
 # Virtual classes for commands
 class BaseCommand(object):
@@ -85,6 +87,7 @@ class ResizeCommand(BaseCommand):
 			return count
 
 def main():
+	no_steps = CONF.sim.no_t
 	cmds = [
 		CreateCommand,
 		ResizeCommand,
@@ -92,11 +95,16 @@ def main():
 	]
 
 	counts = {}
+	hosts_dict = {}
 	for p in proxies:
 		counts[p.host] = 0
 
-	
-	for t in xrange(CONF.sim.no_t):
+		sim_type = 'smart' if p.is_smart()['smart'] else 'normal'
+		hosts_dict[p.host] = sim_type
+
+	bifrost.add_sim(no_steps, hosts_dict)
+
+	for t in xrange(no_steps):
 		cmd = {}
 		for p in proxies:
 			if counts[p.host] > 0:
@@ -107,6 +115,9 @@ def main():
 			LOG.info(p.host + ': ' + str(t) + ' --> ' + cmd[p.host].name)
 		
 			counts[p.host] = cmd[p.host].execute(p, counts[p.host])
+
+			snapshot = p.snapshot()
+			bifrost.add_snapshot(p.host, t, cmd[p.host].name, snapshot)
 
 	LOG.info(p.host + ': simulation ENDED')
 
