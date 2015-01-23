@@ -95,21 +95,24 @@ def main():
 	for p in proxies:
 		counts[p.host] = 0
 
-	for p in proxies:
-		for t in xrange(CONF.sim.no_t):
+	
+	for t in xrange(CONF.sim.no_t):
+		cmd = {}
+		for p in proxies:
 			if counts[p.host] > 0:
-				cmd = random.choice(cmds)()
+				cmd[p.host] = random.choice(cmds)()
 			else: #there are no virtual machines... let's spawn one!
-				cmd = CreateCommand()
-				
-			LOG.info(p.host + ': ' + str(t) + ' --> ' + cmd.name)
+				cmd[p.host] = CreateCommand()
 			
-			counts[p.host] = cmd.execute(p, counts[p.host])
+			LOG.info(p.host + ': ' + str(t) + ' --> ' + cmd[p.host].name)
+		
+			counts[p.host] = cmd[p.host].execute(p, counts[p.host])
 
-		LOG.info(p.host + ': simulation ENDED')
+	LOG.info(p.host + ': simulation ENDED')
 
-		# TODO remove these lines
-		import time
+	import time
+	for p in proxies:
+		# removing all remaining instances
 		TIMEOUT = 30
 		LOG.info(p.host + ': destroying all remaining instances in ' + str(TIMEOUT) + ' seconds')
 		for t in xrange(1, TIMEOUT + 1):
