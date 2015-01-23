@@ -1,3 +1,6 @@
+from oscard import config
+config.init_conf()
+
 from oslo.config import cfg
 import random, traceback
 from oscard import log
@@ -82,11 +85,6 @@ class ResizeCommand(BaseCommand):
 			return count
 
 def main():
-	from oscard import config, log
-	config.init_conf()
-	
-	LOG = log.get_logger(__name__)
-
 	cmds = [
 		CreateCommand,
 		ResizeCommand,

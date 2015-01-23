@@ -1,6 +1,10 @@
+from oscard import config
+config.init_conf()
+
 from bottle import route, run, request, response
 from oslo.config import cfg
-from oscard import log, config
+from oscard import log
+from oscard.sim import api
 import urllib, urllib2
 
 proxy_opts = [
@@ -19,11 +23,6 @@ proxy_opts = [
 CONF = cfg.CONF
 CONF.register_opts(proxy_opts)
 LOG = log.get_logger(__name__)
-
-# init conf before importing api.
-# if not ctrl_host wouldn't be initialized
-config.init_conf()
-from oscard.sim import api
 
 nova_api = None
 if CONF.fake:
