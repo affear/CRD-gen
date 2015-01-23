@@ -254,5 +254,5 @@ class NovaAPI(CRDAPI):
 
 	def is_smart(self):
 		services = self.nova.services.list()
-		names = [s.name for s in services]
+		names = [s.binary for s in services]
 		return {'smart': 'nova-consolidator' in names}, 200
