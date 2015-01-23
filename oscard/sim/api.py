@@ -67,7 +67,17 @@ class FakeAPI(CRDAPI):
 		return {'smart': False}, 200
 
 	def snapshot(self):
-		return {'fake': 'snapshot'}
+		metrics = {
+			'vcpus': '?',
+			'vcpus_used': '?',
+			'memory_mb': '?',
+			'memory_mb_used': '?'
+		}
+
+		return {
+			'fakehost1': metrics,
+			'fakehost2': metrics
+		}, 200
 
 from keystoneclient.v2_0 import client as ksclient
 from novaclient.v1_1 import client as nvclient
