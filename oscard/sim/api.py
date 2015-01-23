@@ -233,7 +233,7 @@ class NovaAPI(CRDAPI):
 		ans = {}
 		hosts = self.nova.hypervisors.list()
 		# retrieve only active hosts
-		filter(lambda h: h.vcpus_used != 0, hosts)
+		hosts = filter(lambda h: h.vcpus_used != 0, hosts)
 
 		#####
 		# if you want to retrieve the host from the server:
