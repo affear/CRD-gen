@@ -63,6 +63,12 @@ class FakeAPI(CRDAPI):
 		LOG.info('fakeapi: destroy --> ' + str(payload))
 		return payload, 200
 
+	def is_smart(self):
+		return {'smart': False}, 200
+
+	def snapshot(self):
+		return {'fake': 'snapshot'}
+
 from keystoneclient.v2_0 import client as ksclient
 from novaclient.v1_1 import client as nvclient
 from novaclient.exceptions import NotFound
@@ -239,4 +245,4 @@ class NovaAPI(CRDAPI):
 	def is_smart(self):
 		services = self.nova.services.list()
 		names = [s.name for s in services]
-		return 'nova-consolidator' in names, 200
+		return {'smart': 'nova-consolidator' in names}, 200
