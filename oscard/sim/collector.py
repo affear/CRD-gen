@@ -6,7 +6,7 @@ bifrost_opts = [
 	cfg.StrOpt(
 		name='fb_backend',
 		default='https://fake.url.firebaseio.com',
-		help='Bifrost app url on Firebase'
+		help='Your app url on Firebase'
 	)
 ]
 
