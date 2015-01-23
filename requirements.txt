@@ -19,10 +19,11 @@ prettytable==0.7.2
 pyOpenSSL==0.14
 pyasn1==0.1.7
 pycparser==2.10
+python-firebase==1.2
 python-keystoneclient==1.0.0
 python-novaclient==2.20.0
 pytz==2014.10
-requests==2.5.1
+requests==1.1.0
 simplejson==3.6.5
 six==1.9.0
 stevedore==1.2.0
