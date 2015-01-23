@@ -120,6 +120,7 @@ def main():
 			bifrost.add_snapshot(p.host, t, cmd[p.host].name, snapshot)
 
 	LOG.info(p.host + ': simulation ENDED')
+	bifrost.add_end_to_current_sim()
 
 	import time
 	for p in proxies:
