@@ -4,7 +4,7 @@ config.init_conf()
 from bottle import route, run, request, response
 from oslo.config import cfg
 from oscard import log
-from oscard.sim import api
+from oscard.sim import api, collector
 import urllib, urllib2
 
 proxy_opts = [
@@ -62,12 +62,12 @@ def smart():
 	response.status = status
 	return body
 
+bifrost = collector.BifrostAPI()
 @route('/seed', method='GET')
 def seed():
-	# TODO
-	# import collector
-	# use bifrost api to retrieve seed
-	return 1
+	body = {'seed': bifrost.seed}
+	response.status = 200
+	return body
 
 class ProxyAPI(api.CRDAPI):
 	'''
