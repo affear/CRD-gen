@@ -32,6 +32,20 @@ class BifrostAPI(object):
 	def _parse_host(self, host_ip_port):
 		return host_ip_port.replace('.', '_').replace(':', '__')
 
+	def add_failure(self, host, step, f, sim_id=None):
+		if not sim_id:
+			sim_id = self.seed
+
+		host = self._parse_host(host)
+
+		base_url = '/sims/' + str(sim_id) + '/' + str(host)
+		nf = self.app.get(base_url, 'no_failures')
+		nf += 1
+		self.app.put(base_url, 'no_failures', nf)
+
+		base_url += '/failures'
+		return self.app.put(base_url, str(step), f)
+
 	def add_snapshot(self, host, step, command_name, snapshot, sim_id=None):
 		if not sim_id:
 			sim_id = self.seed
@@ -67,7 +81,10 @@ class BifrostAPI(object):
 		}
 
 		for h in hosts_dict:
-			data[self._parse_host(h)] = {'type': hosts_dict[h]}
+			data[self._parse_host(h)] = {
+				'type': hosts_dict[h],
+				'no_failures': 0
+			}
 
 		return self.app.put('/sims', str(id), data)
 
