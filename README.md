@@ -47,5 +47,5 @@ On the machine you execute `./bin/run_sim`, remeber to launch _RabbitMQ_ and _Ce
 
 ```
 	$ sudo service rabbitmq-server start
-	$ celery -A oscard.sim.collector worker -l INFO
+	$ celery -A oscard.sim.collector worker -l INFO -c 1
 ```
