@@ -54,8 +54,13 @@ class BifrostAPI(object):
 
 		snapshot['command'] = command_name
 
-		base_url = '/sims/' + str(sim_id) + '/' + str(host) + '/snapshots'
-		return self.app.put(base_url, str(step), snapshot)
+		base_url = '/sims/' + str(sim_id) + '/' + str(host)
+
+		no_cmd = self.app.get(base_url, 'no_' + command_name)
+		# increment number of c/r/d
+		self.app.put(base_url, 'no_' + command_name, no_cmd + 1)
+
+		return self.app.put(base_url + '/snapshots', str(step), snapshot)
 
 	def add_sim(self, steps, hosts_dict, id=None, created_at=None):
 		'''
@@ -83,7 +88,10 @@ class BifrostAPI(object):
 		for h in hosts_dict:
 			data[self._parse_host(h)] = {
 				'type': hosts_dict[h],
-				'no_failures': 0
+				'no_failures': 0,
+				'no_create': 0,
+				'no_resize': 0,
+				'no_destroy': 0
 			}
 
 		return self.app.put('/sims', str(id), data)
