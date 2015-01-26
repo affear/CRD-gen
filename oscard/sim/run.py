@@ -94,11 +94,19 @@ class ResizeCommand(BaseCommand):
 
 def main():
 	no_steps = CONF.sim.no_t
-	cmds = [
-		CreateCommand,
-		ResizeCommand,
-		DestroyCommand,
+
+	# weights for commands
+	C_WEIGHT = 6
+	R_WEIGHT = 2
+	D_WEIGHT = 2
+	assert C_WEIGHT + R_WEIGHT + D_WEIGHT == 10
+
+	cmds_weighted = [
+		(CreateCommand, C_WEIGHT),
+		(ResizeCommand, R_WEIGHT),
+		(DestroyCommand, D_WEIGHT),
 	]
+	cmds = [val for val, cnt in cmds_weighted for i in range(cnt)]
 
 	counts = {}
 	hosts_dict = {}
