@@ -84,18 +84,18 @@ class ProxyAPI(api.CRDAPI):
 
 		if method == 'GET':
 			params = urllib.urlencode(kwargs)
-			url = url + '?' + params if params else url
-			response = urllib2.urlopen(url)
+			req = url + '?' + params if params else url
 		else:
 			data = json.dumps(kwargs)
 			req = urllib2.Request(url, data, headers={'Content-Type': 'application/json'})
-			response = urllib2.urlopen(req)
 
-		status = response.getcode()
-		body = json.loads(response.read())
-		if status == 400:
-			# bad request
-			raise Exception(body['msg'])
+		try:
+			response = urllib2.urlopen(req)
+			body = json.loads(response.read())
+		except urllib2.HTTPError as e:
+			body = json.loads(e.read())
+			raise Exception(body)
+		
 		return body
 
 	def create(self, **kwargs):
