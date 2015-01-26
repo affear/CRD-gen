@@ -93,6 +93,25 @@ class ResizeCommand(BaseCommand):
 			return count, failure
 
 def main():
+	celery_ok = True
+
+	# checking if Celery is up
+	from celery.task.control import inspect
+	from errno import errorcode
+	try:
+		if not inspect().stats():
+			celery_ok = False
+			LOG.warning('No celery worker is up. NOT using Celery')
+	except:
+		celery_ok = False
+		LOG.warning('RabbitMQ refused connection. NOT using Celery')
+
+	def run_on_bifrost(method, *args):
+		if celery_ok:
+			method.delay(*args)
+		else:
+			method(*args)
+
 	no_steps = CONF.sim.no_t
 
 	# weights for commands
@@ -116,7 +135,7 @@ def main():
 		sim_type = 'smart' if p.is_smart()['smart'] else 'normal'
 		hosts_dict[p.host] = sim_type
 
-	bifrost.add_sim(no_steps, hosts_dict)
+	run_on_bifrost(bifrost.add_sim, no_steps, hosts_dict)
 
 	for t in xrange(no_steps):
 		cmd = {}
@@ -133,14 +152,14 @@ def main():
 			snapshot = None
 			if failure is not None:
 				snapshot = {'failure': failure}
-				bifrost.add_failure(p.host, t, failure)
+				run_on_bifrost(bifrost.add_failure, p.host, t, failure)
 			else:
 				snapshot = p.snapshot()
 
-			bifrost.add_snapshot(p.host, t, cmd[p.host].name, snapshot)
+			run_on_bifrost(bifrost.add_snapshot, p.host, t, cmd[p.host].name, snapshot)
 
 	LOG.info(p.host + ': simulation ENDED')
-	bifrost.add_end_to_current_sim()
+	run_on_bifrost(bifrost.add_end_to_current_sim)
 
 	import time
 	for p in proxies:
@@ -153,5 +172,4 @@ def main():
 			time.sleep(1)
 
 		for times in xrange(counts[p.host]):
-			resp = p.destroy()
-			LOG.info(str(resp))
+			DestroyCommand().execute(p, counts[p.host])
