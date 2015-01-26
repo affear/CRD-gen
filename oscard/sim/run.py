@@ -2,7 +2,7 @@ from oscard import config
 config.init_conf()
 
 from oslo.config import cfg
-import random, traceback
+import random
 from oscard import log
 from oscard.sim.proxy import ProxyAPI
 from oscard.sim.collector import BifrostAPI
@@ -40,7 +40,7 @@ class BaseCommand(object):
 		# invoke nova apis
 		# use context
 		# return new context
-		return {}
+		raise NotImplementedError
 
 	class Meta:
 		abstract = True
@@ -49,42 +49,48 @@ class CreateCommand(BaseCommand):
 	name = 'create'
 
 	def execute(self, proxy, count):
+		failure = None
 		try:
 			resp = proxy.create()
 			count += 1
 
 			LOG.info(str(resp))
 		except Exception as e:
-			LOG.error(traceback.format_exc())
+			LOG.error(str(e.message))
+			failure = e.message
 		finally:
-			return count
+			return count, failure
 
 class DestroyCommand(BaseCommand):
 	name = 'destroy'
 
 	def execute(self, proxy, count):
+		failure = None
 		try:
 			resp = proxy.destroy()
 			count -= 1
 
 			LOG.info(str(resp))
 		except Exception as e:
-			LOG.error(traceback.format_exc())
+			LOG.error(str(e.message))
+			failure = e.message
 		finally:
-			return count
+			return count, failure
 
 class ResizeCommand(BaseCommand):
 	name = 'resize'
 
 	def execute(self, proxy, count):
+		failure = None
 		try:
 			resp = proxy.resize()
 
 			LOG.info(str(resp))
 		except Exception as e:
-			LOG.error(traceback.format_exc())
+			LOG.error(str(e.message))
+			failure = e.message
 		finally:
-			return count
+			return count, failure
 
 def main():
 	no_steps = CONF.sim.no_t
@@ -114,9 +120,15 @@ def main():
 			
 			LOG.info(p.host + ': ' + str(t) + ' --> ' + cmd[p.host].name)
 		
-			counts[p.host] = cmd[p.host].execute(p, counts[p.host])
+			counts[p.host], failure = cmd[p.host].execute(p, counts[p.host])
 
-			snapshot = p.snapshot()
+			snapshot = None
+			if failure is not None:
+				snapshot = {'failure': failure}
+				bifrost.add_failure(p.host, t, failure)
+			else:
+				snapshot = p.snapshot()
+
 			bifrost.add_snapshot(p.host, t, cmd[p.host].name, snapshot)
 
 	LOG.info(p.host + ': simulation ENDED')
