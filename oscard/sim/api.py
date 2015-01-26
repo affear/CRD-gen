@@ -49,19 +49,58 @@ class CRDAPI(object):
 class FakeAPI(CRDAPI):
 
 	def create(self, **kwargs):
-		payload = {'id': random.randint(0, 1000), 'args': kwargs}
-		LOG.info('fakeapi: create --> ' + str(payload))
-		return payload, 200
+		payload = {}
+		status = 200
+		log_level = None
+		ok = bool(random.getrandbits(1))
+
+		if ok:
+			payload = {'id': random.randint(0, 1000), 'args': kwargs}
+			log_level = LOG.info
+		else:
+			status = 400
+			payload = {'msg': 'Random ERROR'}
+			log_level = LOG.error
+
+		log_level('fakeapi: create --> ' + str(payload))
+
+		return payload, status
 
 	def resize(self, **kwargs):
-		payload = {'body': 'resized', 'args': kwargs}
-		LOG.info('fakeapi: resize --> ' + str(payload))
-		return payload, 200
+		payload = {}
+		status = 200
+		log_level = None
+		ok = bool(random.getrandbits(1))
+
+		if ok:
+			payload = {'body': 'resized', 'args': kwargs}
+			log_level = LOG.info
+		else:
+			status = 400
+			payload = {'msg': 'Random ERROR'}
+			log_level = LOG.error
+
+		log_level('fakeapi: resize --> ' + str(payload))
+
+		return payload, status
 
 	def destroy(self, **kwargs):
-		payload = {'body': 'destroyed', 'args': kwargs}
-		LOG.info('fakeapi: destroy --> ' + str(payload))
-		return payload, 200
+		payload = {}
+		status = 200
+		log_level = None
+		ok = bool(random.getrandbits(1))
+
+		if ok:
+			payload = {'body': 'destroyed', 'args': kwargs}
+			log_level = LOG.info
+		else:
+			status = 400
+			payload = {'msg': 'Random ERROR'}
+			log_level = LOG.error
+
+		log_level('fakeapi: destroy --> ' + str(payload))
+
+		return payload, status
 
 	def is_smart(self):
 		return {'smart': False}, 200
