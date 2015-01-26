@@ -42,3 +42,10 @@ So, from the controller:
 	$ nova quota-class-update --cores $BIGNUM default
 	$ nova quota-class-update --ram $BIGNUM default
 ```
+
+On the machine you execute `./bin/run_sim`, remeber to launch _RabbitMQ_ and _Celery_ worker (if you want to use deferred task to communicate with _Bifrost_):
+
+```
+	$ sudo service rabbitmq-server start
+	$ celery -A oscard.sim.collector worker -l INFO
+```
