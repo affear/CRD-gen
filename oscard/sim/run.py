@@ -97,7 +97,6 @@ def main():
 
 	# checking if Celery is up
 	from celery.task.control import inspect
-	from errno import errorcode
 	try:
 		if not inspect().stats():
 			celery_ok = False
@@ -121,27 +120,35 @@ def main():
 	assert C_WEIGHT + R_WEIGHT + D_WEIGHT == 10
 
 	cmds_weighted = [
-		(CreateCommand, C_WEIGHT),
-		(ResizeCommand, R_WEIGHT),
-		(DestroyCommand, D_WEIGHT),
+		(CreateCommand(), C_WEIGHT),
+		(ResizeCommand(), R_WEIGHT),
+		(DestroyCommand(), D_WEIGHT),
 	]
 	cmds = [val for val, cnt in cmds_weighted for i in range(cnt)]
 
 	counts = {}
 	hosts_dict = {}
+	no_instr = {}
+	no_failures = {}
+	for c in cmds_weighted:
+		no_instr['no_' + c[0].name] = 0
+
 	for p in proxies:
 		counts[p.host] = 0
+		no_failures[p.host] = 0
 
 		sim_type = 'smart' if p.is_smart()['smart'] else 'normal'
 		hosts_dict[p.host] = sim_type
 
-	run_on_bifrost(bifrost.add_sim, no_steps, hosts_dict)
+	sim_id, _ = bifrost.add_sim(no_steps, hosts_dict)
+
+	LOG.info('Simulation ID: ' + str(sim_id))
 
 	for t in xrange(no_steps):
 		cmd = {}
 		for p in proxies:
 			if counts[p.host] > 0:
-				cmd[p.host] = random.choice(cmds)()
+				cmd[p.host] = random.choice(cmds)
 			else: #there are no virtual machines... let's spawn one!
 				cmd[p.host] = CreateCommand()
 			
@@ -149,17 +156,23 @@ def main():
 		
 			counts[p.host], failure = cmd[p.host].execute(p, counts[p.host])
 
+			# increment number of c/r/d
+			no_instr['no_' + cmd[p.host].name] += 1
+
 			snapshot = None
 			if failure is not None:
+				no_failures[p.host] += 1
 				snapshot = {'failure': failure}
 				run_on_bifrost(bifrost.add_failure, p.host, t, failure)
+				run_on_bifrost(bifrost.update_no_failures, p.host, no_failures[p.host])
 			else:
 				snapshot = p.snapshot()
 
 			run_on_bifrost(bifrost.add_snapshot, p.host, t, cmd[p.host].name, snapshot)
+			run_on_bifrost(bifrost.update_no_instr, no_instr)
 
 	LOG.info(p.host + ': simulation ENDED')
-	run_on_bifrost(bifrost.add_end_to_current_sim)
+	bifrost.add_end_to_current_sim()
 
 	import time
 	for p in proxies:
