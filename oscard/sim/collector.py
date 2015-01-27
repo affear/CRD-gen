@@ -50,14 +50,19 @@ class BifrostAPI(object):
 			sim_id = self.seed
 
 		host = self._parse_host(host)
-
 		base_url = '/sims/' + str(sim_id) + '/' + str(host)
-		nf = self.app.get(base_url, 'no_failures')
-		nf += 1
-		self.app.put(base_url, 'no_failures', nf)
 
-		base_url += '/failures'
-		return self.app.put(base_url, str(step), f)
+		return self.app.put(base_url + '/failures', str(step), f)
+
+	@task(name='bifrost.update_no_failures')
+	def update_no_failures(self, host, nf, sim_id=None):
+		if not sim_id:
+			sim_id = self.seed
+
+		host = self._parse_host(host)
+		base_url = '/sims/' + str(sim_id) + '/' + str(host)
+
+		return self.app.put(base_url, 'no_failures', nf)
 
 	@task(name='bifrost.add_snapshot')
 	def add_snapshot(self, host, step, command_name, snapshot, sim_id=None):
@@ -65,18 +70,18 @@ class BifrostAPI(object):
 			sim_id = self.seed
 
 		host = self._parse_host(host)
-
 		snapshot['command'] = command_name
-
 		base_url = '/sims/' + str(sim_id) + '/' + str(host)
-
-		no_cmd = self.app.get(base_url, 'no_' + command_name)
-		# increment number of c/r/d
-		self.app.put(base_url, 'no_' + command_name, no_cmd + 1)
 
 		return self.app.put(base_url + '/snapshots', str(step), snapshot)
 
-	@task(name='bifrost.add_sim')
+	@task(name='bifrost.update_no_instr')
+	def update_no_instr(self, no_instr, sim_id=None):
+		if not sim_id:
+			sim_id = self.seed
+
+		return self.app.patch('/sims/' + str(sim_id), no_instr)
+
 	def add_sim(self, steps, hosts_dict, id=None, created_at=None):
 		'''
 			- steps: the number of steps
@@ -88,6 +93,8 @@ class BifrostAPI(object):
 					}
 			- id: the simulation id
 			- created_at: creation time
+
+			Not a task. We need sync on id++.
 		'''
 		if not id:
 			id = self._seedpp()
@@ -103,15 +110,11 @@ class BifrostAPI(object):
 		for h in hosts_dict:
 			data[self._parse_host(h)] = {
 				'type': hosts_dict[h],
-				'no_failures': 0,
-				'no_create': 0,
-				'no_resize': 0,
-				'no_destroy': 0
+				'no_failures': 0
 			}
 
-		return self.app.put('/sims', str(id), data)
+		return id, self.app.put('/sims', str(id), data)
 
-	@task(name='bifrost.add_end')
 	def add_end_to_current_sim(self):
 		default_formatting = '%Y-%m-%d %H:%M:%S.%f'
 		id = self.seed
