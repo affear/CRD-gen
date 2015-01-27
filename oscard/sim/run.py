@@ -6,6 +6,7 @@ import random
 from oscard import log
 from oscard.sim.proxy import ProxyAPI
 from oscard.sim.collector import BifrostAPI
+import webbrowser
 
 sim_group = cfg.OptGroup(name='sim')
 sim_opts = [
@@ -141,6 +142,17 @@ def main():
 		hosts_dict[p.host] = sim_type
 
 	sim_id, _ = bifrost.add_sim(no_steps, hosts_dict)
+
+	# open tab in chrome
+	try:
+		import webbrowser
+		import os
+		chrome = webbrowser.get('google-chrome')
+		url = os.path.join(CONF.fb_backend, 'sims', str(sim_id))
+		chrome.open_new_tab(url)
+		LOG.info('Tab opened in Chrome at ' + url)
+	except:
+		LOG.warning('Cannot open sim tab in Chrome')
 
 	LOG.info('Simulation ID: ' + str(sim_id))
 
