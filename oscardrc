@@ -6,3 +6,22 @@ fi
 
 source venv/bin/activate
 export PYTHONPATH="$(pwd):$PYTHONPATH"
+
+function start_celery_worker {
+	local suffix
+	local cmd
+
+	if [[ -z "$1" ]] || [[ "$1" == "-c" ]]; then
+		suffix=''
+	elif [[ "$1" == "-s" ]]; then
+		suffix='-c 1'
+	else
+		echo "-c for concurrent"
+		echo "-s for serial"
+		return 1
+	fi
+
+	cmd='celery -A oscard.sim.collector worker -l INFO '$suffix
+
+	eval $cmd
+}
