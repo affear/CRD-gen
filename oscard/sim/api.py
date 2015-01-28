@@ -110,12 +110,20 @@ class FakeAPI(CRDAPI):
 			'vcpus': '?',
 			'vcpus_used': '?',
 			'memory_mb': '?',
-			'memory_mb_used': '?'
+			'memory_mb_used': '?',
+			'local_gb': '?',
+			'local_gb_used': '?',
+			'r_vcpus': '?',
+			'r_memory_mb': '?',
+			'r_local_gb': '?'
 		}
 
 		return {
 			'fakehost1': metrics,
-			'fakehost2': metrics
+			'fakehost2': metrics,
+			'avg_r_vcpus' : 0,
+			'avg_r_memory_mb' : 0,
+			'avg_r_local_gb' : 0
 		}, 200
 
 from keystoneclient.v2_0 import client as ksclient
@@ -303,7 +311,7 @@ class NovaAPI(CRDAPI):
 		ans['avg_r_vcpus'] = avg_r_vcpus
 		ans['avg_r_memory_mb'] = avg_r_memory_mb
 		ans['avg_r_local_gb'] = avg_r_local_gb
-		
+
 		return ans, 200
 
 	def is_smart(self):
