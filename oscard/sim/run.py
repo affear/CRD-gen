@@ -141,7 +141,8 @@ def main():
 		aggregates[p.host] = {
 			'agg_r_vcpus': 0,
 			'agg_r_memory_mb': 0,
-			'agg_r_local_gb': 0
+			'agg_r_local_gb': 0,
+			'agg_no_active_cmps': 0
 		}
 
 		sim_type = 'smart' if p.is_smart()['smart'] else 'normal'
@@ -190,6 +191,7 @@ def main():
 				avg_r_vcpus = snapshot['avg_r_vcpus']
 				avg_r_memory_mb = snapshot['avg_r_memory_mb']
 				avg_r_local_gb = snapshot['avg_r_local_gb']
+				no_hosts = snapshot['no_active_cmps']
 
 				# vcpu
 				old_r_vcpu = aggregates[p.host]['agg_r_vcpus']
@@ -206,6 +208,10 @@ def main():
 				new_r_disk = (old_r_disk * t + avg_r_local_gb) / float(t + 1)
 				aggregates[p.host]['agg_r_local_gb'] = new_r_disk
 
+				# active cmps
+				old_n_hosts = aggregates[p.host]['agg_no_active_cmps']
+				new_n_hosts = (old_n_hosts * t + no_hosts) / float(t + 1)
+				aggregates[p.host]['agg_no_active_cmps'] = new_n_hosts
 
 			run_on_bifrost(bifrost.add_snapshot, p.host, t, cmd[p.host].name, snapshot)
 			run_on_bifrost(bifrost.update_no_instr, no_instr)
