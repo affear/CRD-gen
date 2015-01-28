@@ -50,7 +50,7 @@ class BifrostAPI(object):
 			sim_id = self.seed
 
 		host = self._parse_host(host)
-		base_url = '/sims/' + str(sim_id) + '/' + str(host)
+		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host)
 
 		return self.app.put(base_url + '/failures', str(step), f)
 
@@ -60,7 +60,7 @@ class BifrostAPI(object):
 			sim_id = self.seed
 
 		host = self._parse_host(host)
-		base_url = '/sims/' + str(sim_id) + '/' + str(host)
+		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host)
 
 		return self.app.put(base_url, 'no_failures', nf)
 
@@ -71,7 +71,7 @@ class BifrostAPI(object):
 
 		host = self._parse_host(host)
 		snapshot['command'] = command_name
-		base_url = '/sims/' + str(sim_id) + '/' + str(host)
+		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host)
 
 		return self.app.put(base_url + '/snapshots', str(step), snapshot)
 
@@ -88,9 +88,7 @@ class BifrostAPI(object):
 			sim_id = self.seed
 
 		host = self._parse_host(host)
-		print aggr
-		print host
-		base_url = '/sims/' + str(sim_id) + '/' + str(host)
+		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host)
 
 		return self.app.patch(base_url, aggr)
 
@@ -115,12 +113,13 @@ class BifrostAPI(object):
 			created_at = str(datetime.datetime.now())
 
 		data = {
+			'proxies': {},
 			'steps': steps,
 			'start': created_at,
 		}
 
 		for h in hosts_dict:
-			data[self._parse_host(h)] = {
+			data['proxies'][self._parse_host(h)] = {
 				'type': hosts_dict[h],
 				'no_failures': 0
 			}

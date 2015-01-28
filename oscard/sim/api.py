@@ -118,9 +118,13 @@ class FakeAPI(CRDAPI):
 			'r_local_gb': '?'
 		}
 
-		return {
+		hosts = {
 			'fakehost1': metrics,
-			'fakehost2': metrics,
+			'fakehost2': metrics
+		}
+
+		return {
+			'cmps': hosts,
 			'avg_r_vcpus' : 0,
 			'avg_r_memory_mb' : 0,
 			'avg_r_local_gb' : 0
@@ -277,7 +281,9 @@ class NovaAPI(CRDAPI):
 		return {'id': id}, 200
 
 	def snapshot(self):
-		ans = {}
+		ans = {
+			'cmps': {}
+		}
 		hosts = self.nova.hypervisors.list()
 		# retrieve only active hosts
 		hosts = filter(lambda h: h.vcpus_used != 0, hosts)
@@ -291,7 +297,7 @@ class NovaAPI(CRDAPI):
 		#####
 
 		for h in hosts:
-			ans[h.hypervisor_hostname] = {
+			ans['cmps'][h.hypervisor_hostname] = {
 				'vcpus': h.vcpus,
 				'vcpus_used': h.vcpus_used,
 				'memory_mb': h.memory_mb,
