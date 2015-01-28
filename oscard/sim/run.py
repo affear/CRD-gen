@@ -139,10 +139,10 @@ def main():
 		counts[p.host] = 0
 		no_failures[p.host] = 0
 		aggregates[p.host] = {
-			'agg_r_vcpus': 0,
-			'agg_r_memory_mb': 0,
-			'agg_r_local_gb': 0,
-			'agg_no_active_cmps': 0
+			'aggr_r_vcpus': 0,
+			'aggr_r_memory_mb': 0,
+			'aggr_r_local_gb': 0,
+			'aggr_no_active_cmps': 0
 		}
 
 		sim_type = 'smart' if p.is_smart()['smart'] else 'normal'
@@ -186,32 +186,25 @@ def main():
 				run_on_bifrost(bifrost.update_no_failures, p.host, no_failures[p.host])
 			else:
 				snapshot = p.snapshot()
+				
+				# create mapping between aggregates names
+				# and snapshot names
+				new_data = {
+					'aggr_r_vcpus': snapshot['avg_r_vcpus'],
+					'aggr_r_memory_mb': snapshot['avg_r_memory_mb'],
+					'aggr_r_local_gb': snapshot['avg_r_local_gb'],
+					'aggr_no_active_cmps': snapshot['no_active_cmps']
+				}
 
-				# update aggregates
-				avg_r_vcpus = snapshot['avg_r_vcpus']
-				avg_r_memory_mb = snapshot['avg_r_memory_mb']
-				avg_r_local_gb = snapshot['avg_r_local_gb']
-				no_hosts = snapshot['no_active_cmps']
+				def update_aggr(key):
+					old = aggregates[p.host][key]
+					new = (old * t + new_data[key]) / float(t + 1)
+					aggregates[p.host][key] = new
 
-				# vcpu
-				old_r_vcpu = aggregates[p.host]['agg_r_vcpus']
-				new_r_vcpu = (old_r_vcpu * t + avg_r_vcpus) / float(t + 1)
-				aggregates[p.host]['agg_r_vcpus'] = new_r_vcpu
-
-				# ram
-				old_r_ram = aggregates[p.host]['agg_r_memory_mb']
-				new_r_ram = (old_r_ram * t + avg_r_memory_mb) / float(t + 1)
-				aggregates[p.host]['agg_r_memory_mb'] = new_r_ram
-
-				# disk
-				old_r_disk = aggregates[p.host]['agg_r_local_gb']
-				new_r_disk = (old_r_disk * t + avg_r_local_gb) / float(t + 1)
-				aggregates[p.host]['agg_r_local_gb'] = new_r_disk
-
-				# active cmps
-				old_n_hosts = aggregates[p.host]['agg_no_active_cmps']
-				new_n_hosts = (old_n_hosts * t + no_hosts) / float(t + 1)
-				aggregates[p.host]['agg_no_active_cmps'] = new_n_hosts
+				update_aggr('aggr_r_vcpus')
+				update_aggr('aggr_r_memory_mb')
+				update_aggr('aggr_r_local_gb')
+				update_aggr('aggr_no_active_cmps')
 
 			run_on_bifrost(bifrost.add_snapshot, p.host, t, cmd[p.host].name, snapshot)
 			run_on_bifrost(bifrost.update_no_instr, no_instr)
