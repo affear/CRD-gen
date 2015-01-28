@@ -131,12 +131,18 @@ def main():
 	hosts_dict = {}
 	no_instr = {}
 	no_failures = {}
+	aggregates = {}
 	for c in cmds_weighted:
 		no_instr['no_' + c[0].name] = 0
 
 	for p in proxies:
 		counts[p.host] = 0
 		no_failures[p.host] = 0
+		aggregates[p.host] = {
+			'agg_r_vcpus': 0,
+			'agg_r_memory_mb': 0,
+			'agg_r_local_gb': 0
+		}
 
 		sim_type = 'smart' if p.is_smart()['smart'] else 'normal'
 		hosts_dict[p.host] = sim_type
@@ -180,8 +186,30 @@ def main():
 			else:
 				snapshot = p.snapshot()
 
+				# update aggregates
+				avg_r_vcpus = snapshot['avg_r_vcpus']
+				avg_r_memory_mb = snapshot['avg_r_memory_mb']
+				avg_r_local_gb = snapshot['avg_r_local_gb']
+
+				# vcpu
+				old_r_vcpu = aggregates[p.host]['agg_r_vcpus']
+				new_r_vcpu = (old_r_vcpu * t + avg_r_vcpus) / float(t + 1)
+				aggregates[p.host]['agg_r_vcpus'] = new_r_vcpu
+
+				# ram
+				old_r_ram = aggregates[p.host]['agg_r_memory_mb']
+				new_r_ram = (old_r_ram * t + avg_r_memory_mb) / float(t + 1)
+				aggregates[p.host]['agg_r_memory_mb'] = new_r_ram
+
+				# disk
+				old_r_disk = aggregates[p.host]['agg_r_local_gb']
+				new_r_disk = (old_r_disk * t + avg_r_local_gb) / float(t + 1)
+				aggregates[p.host]['agg_r_local_gb'] = new_r_disk
+
+
 			run_on_bifrost(bifrost.add_snapshot, p.host, t, cmd[p.host].name, snapshot)
 			run_on_bifrost(bifrost.update_no_instr, no_instr)
+			run_on_bifrost(bifrost.update_aggregates, p.host, aggregates[p.host])
 
 	LOG.info(p.host + ': simulation ENDED')
 	bifrost.add_end_to_current_sim()
