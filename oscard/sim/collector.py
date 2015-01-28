@@ -124,6 +124,7 @@ class BifrostAPI(object):
 				'no_failures': 0
 			}
 
+		self.app.patch('/', {'running': True})
 		return id, self.app.put('/sims', str(id), data)
 
 	def add_end_to_current_sim(self):
@@ -144,4 +145,5 @@ class BifrostAPI(object):
 			'end': str(end),
 			'elapsed_time': elapsed_time
 		}
+		self.app.patch('/', {'running': False})
 		return self.app.patch('/sims/' + str(id), data)
