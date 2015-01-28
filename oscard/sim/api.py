@@ -288,7 +288,22 @@ class NovaAPI(CRDAPI):
 				'vcpus_used': h.vcpus_used,
 				'memory_mb': h.memory_mb,
 				'memory_mb_used': h.memory_mb_used,
+				'local_gb': h.local_gb,
+				'local_gb_used': h.local_gb_used,
+				'r_vcpus': float(h.vcpus_used) / h.vcpus,
+				'r_memory_mb': float(h.memory_mb_used) / h.memory_mb,
+				'r_local_gb': float(h.local_gb_used) / h.local_gb
 			}
+
+		n_active_hosts = float(len(ans.keys()))
+		avg_r_vcpus = sum([ans[h]['r_vcpus'] for h in ans]) / n_active_hosts
+		avg_r_memory_mb = sum([ans[h]['r_memory_mb'] for h in ans]) / n_active_hosts
+		avg_r_local_gb = sum([ans[h]['r_local_gb'] for h in ans]) / n_active_hosts
+
+		ans['avg_r_vcpus'] = avg_r_vcpus
+		ans['avg_r_memory_mb'] = avg_r_memory_mb
+		ans['avg_r_local_gb'] = avg_r_local_gb
+		
 		return ans, 200
 
 	def is_smart(self):
