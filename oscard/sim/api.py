@@ -127,7 +127,8 @@ class FakeAPI(CRDAPI):
 			'cmps': hosts,
 			'avg_r_vcpus' : 0,
 			'avg_r_memory_mb' : 0,
-			'avg_r_local_gb' : 0
+			'avg_r_local_gb' : 0,
+			'no_active_cmps': 2
 		}, 200
 
 from keystoneclient.v2_0 import client as ksclient
@@ -317,6 +318,7 @@ class NovaAPI(CRDAPI):
 		ans['avg_r_vcpus'] = avg_r_vcpus
 		ans['avg_r_memory_mb'] = avg_r_memory_mb
 		ans['avg_r_local_gb'] = avg_r_local_gb
+		ans['no_active_cmps'] = n_active_hosts
 
 		return ans, 200
 
