@@ -135,10 +135,10 @@ def main():
 	for c in cmds_weighted:
 		no_instr['no_' + c[0].name] = 0
 
-	for p in proxies:
-		counts[p.host] = 0
-		no_failures[p.host] = 0
-		aggregates[p.host] = {
+	for i, p in enumerate(proxies):
+		counts[i] = 0
+		no_failures[i] = 0
+		aggregates[i] = {
 			'aggr_r_vcpus': 0,
 			'aggr_r_memory_mb': 0,
 			'aggr_r_local_gb': 0,
@@ -146,7 +146,10 @@ def main():
 		}
 
 		sim_type = 'smart' if p.is_smart()['smart'] else 'normal'
-		hosts_dict[p.host] = sim_type
+		hosts_dict[i] = {
+			'type': sim_type,
+			'address': p.host
+		}
 
 	sim_id, _ = bifrost.add_sim(no_steps, hosts_dict)
 
@@ -165,25 +168,25 @@ def main():
 
 	for t in xrange(no_steps):
 		cmd = {}
-		for p in proxies:
-			if counts[p.host] > 0:
-				cmd[p.host] = random.choice(cmds)
+		for i, p in enumerate(proxies):
+			if counts[i] > 0:
+				cmd[i] = random.choice(cmds)
 			else: #there are no virtual machines... let's spawn one!
-				cmd[p.host] = CreateCommand()
+				cmd[i] = CreateCommand()
 			
-			LOG.info(p.host + ': ' + str(t) + ' --> ' + cmd[p.host].name)
+			LOG.info(p.host + ': ' + str(t) + ' --> ' + cmd[i].name)
 		
-			counts[p.host], failure = cmd[p.host].execute(p, counts[p.host])
+			counts[i], failure = cmd[i].execute(p, counts[i])
 
 			# increment number of c/r/d
-			no_instr['no_' + cmd[p.host].name] += 1
+			no_instr['no_' + cmd[i].name] += 1
 
 			snapshot = None
 			if failure is not None:
-				no_failures[p.host] += 1
+				no_failures[i] += 1
 				snapshot = {'failure': failure}
-				run_on_bifrost(bifrost.add_failure, p.host, t, failure)
-				run_on_bifrost(bifrost.update_no_failures, p.host, no_failures[p.host])
+				run_on_bifrost(bifrost.add_failure, i, t, failure)
+				run_on_bifrost(bifrost.update_no_failures, i, no_failures[i])
 			else:
 				snapshot = p.snapshot()
 				
@@ -197,24 +200,24 @@ def main():
 				}
 
 				def update_aggr(key):
-					old = aggregates[p.host][key]
+					old = aggregates[i][key]
 					new = (old * t + new_data[key]) / float(t + 1)
-					aggregates[p.host][key] = new
+					aggregates[i][key] = new
 
 				update_aggr('aggr_r_vcpus')
 				update_aggr('aggr_r_memory_mb')
 				update_aggr('aggr_r_local_gb')
 				update_aggr('aggr_no_active_cmps')
 
-			run_on_bifrost(bifrost.add_snapshot, p.host, t, cmd[p.host].name, snapshot)
+			run_on_bifrost(bifrost.add_snapshot, i, t, cmd[i].name, snapshot)
 			run_on_bifrost(bifrost.update_no_instr, no_instr)
-			run_on_bifrost(bifrost.update_aggregates, p.host, aggregates[p.host])
+			run_on_bifrost(bifrost.update_aggregates, i, aggregates[i])
 
 	LOG.info(p.host + ': simulation ENDED')
 	bifrost.add_end_to_current_sim()
 
 	import time
-	for p in proxies:
+	for i, p in enumerate(proxies):
 		# removing all remaining instances
 		TIMEOUT = 30
 		LOG.info(p.host + ': destroying all remaining instances in ' + str(TIMEOUT) + ' seconds')
@@ -223,5 +226,5 @@ def main():
 				LOG.info(str(TIMEOUT - t) + ' seconds to destroy...')
 			time.sleep(1)
 
-		for times in xrange(counts[p.host]):
-			DestroyCommand().execute(p, counts[p.host])
+		for times in xrange(counts[i]):
+			DestroyCommand().execute(p, counts[i])

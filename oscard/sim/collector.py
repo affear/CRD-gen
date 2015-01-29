@@ -41,37 +41,31 @@ class BifrostAPI(object):
 		self.app.put('/', 'last_sim_id', last_id)
 		return last_id
 
-	def _parse_host(self, host_ip_port):
-		return host_ip_port.replace('.', '_').replace(':', '__')
-
 	@task(name='bifrost.add_failure')
-	def add_failure(self, host, step, f, sim_id=None):
+	def add_failure(self, host_id, step, f, sim_id=None):
 		if not sim_id:
 			sim_id = self.seed
 
-		host = self._parse_host(host)
-		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host)
+		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host_id)
 
 		return self.app.put(base_url + '/failures', str(step), f)
 
 	@task(name='bifrost.update_no_failures')
-	def update_no_failures(self, host, nf, sim_id=None):
+	def update_no_failures(self, host_id, nf, sim_id=None):
 		if not sim_id:
 			sim_id = self.seed
 
-		host = self._parse_host(host)
-		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host)
+		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host_id)
 
 		return self.app.put(base_url, 'no_failures', nf)
 
 	@task(name='bifrost.add_snapshot')
-	def add_snapshot(self, host, step, command_name, snapshot, sim_id=None):
+	def add_snapshot(self, host_id, step, command_name, snapshot, sim_id=None):
 		if not sim_id:
 			sim_id = self.seed
 
-		host = self._parse_host(host)
 		snapshot['command'] = command_name
-		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host)
+		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host_id)
 
 		return self.app.put(base_url + '/snapshots', str(step), snapshot)
 
@@ -83,23 +77,28 @@ class BifrostAPI(object):
 		return self.app.patch('/sims/' + str(sim_id), no_instr)
 
 	@task(name='bifrost.update_aggregates')
-	def update_aggregates(self, host, aggr, sim_id=None):
+	def update_aggregates(self, host_id, aggr, sim_id=None):
 		if not sim_id:
 			sim_id = self.seed
 
-		host = self._parse_host(host)
-		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host)
+		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host_id)
 
 		return self.app.patch(base_url, aggr)
 
 	def add_sim(self, steps, hosts_dict, id=None, created_at=None):
 		'''
 			- steps: the number of steps
-			- hosts_dict: a dict with hostname as key and simulation
-				type as value. For instance:
+			- hosts_dict: a dict with host_id as key and simulation
+				type and host address as value. For instance:
 					{
-						'host1': 'normal',
-						'host2': 'smart',
+						1: {
+							'type': 'normal',
+							'address': '192.168.0.1:7000'
+						},
+						2: {
+							'type': 'smart',
+							'address': '10.169.4.2:3000'
+						}
 					}
 			- id: the simulation id
 			- created_at: creation time
@@ -112,17 +111,14 @@ class BifrostAPI(object):
 		if not created_at:
 			created_at = str(datetime.datetime.now())
 
+		for h in hosts_dict:
+				hosts_dict[h]['no_failures'] = 0
+
 		data = {
-			'proxies': {},
+			'proxies': hosts_dict,
 			'steps': steps,
 			'start': created_at,
 		}
-
-		for h in hosts_dict:
-			data['proxies'][self._parse_host(h)] = {
-				'type': hosts_dict[h],
-				'no_failures': 0
-			}
 
 		self.app.patch('/', {'running': True})
 		return id, self.app.put('/sims', str(id), data)
