@@ -41,15 +41,6 @@ class BifrostAPI(object):
 		self.app.put('/', 'last_sim_id', last_id)
 		return last_id
 
-	@task(name='bifrost.add_failure')
-	def add_failure(self, host_id, step, f, sim_id=None):
-		if not sim_id:
-			sim_id = self.seed
-
-		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host_id)
-
-		return self.app.put(base_url + '/failures', str(step), f)
-
 	@task(name='bifrost.update_no_failures')
 	def update_no_failures(self, host_id, nf, sim_id=None):
 		if not sim_id:
@@ -78,7 +69,7 @@ class BifrostAPI(object):
 
 	@task(name='bifrost.update_aggregates')
 	def update_aggregates(self, host_id, aggr, sim_id=None):
-		if not sim_id:
+		if not sim_id :
 			sim_id = self.seed
 
 		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host_id)

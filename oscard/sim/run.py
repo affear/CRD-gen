@@ -185,7 +185,6 @@ def main():
 			if failure is not None:
 				no_failures[i] += 1
 				snapshot = {'failure': failure}
-				run_on_bifrost(bifrost.add_failure, i, t, failure)
 				run_on_bifrost(bifrost.update_no_failures, i, no_failures[i])
 			else:
 				snapshot = p.snapshot()
