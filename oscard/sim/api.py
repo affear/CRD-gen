@@ -326,10 +326,16 @@ class NovaAPI(CRDAPI):
 				'r_local_gb': float(h.local_gb_used) / h.local_gb
 			}
 
+		avg_r_vcpus = 0
+		avg_r_memory_mb = 0
+		avg_r_local_gb = 0
+
 		n_active_hosts = float(len(hosts))
-		avg_r_vcpus = sum([ans['cmps'][h]['r_vcpus'] for h in ans['cmps']]) / n_active_hosts
-		avg_r_memory_mb = sum([ans['cmps'][h]['r_memory_mb'] for h in ans['cmps']]) / n_active_hosts
-		avg_r_local_gb = sum([ans['cmps'][h]['r_local_gb'] for h in ans['cmps']]) / n_active_hosts
+
+		if n_active_hosts > 0:
+			avg_r_vcpus = sum([ans['cmps'][h]['r_vcpus'] for h in ans['cmps']]) / n_active_hosts
+			avg_r_memory_mb = sum([ans['cmps'][h]['r_memory_mb'] for h in ans['cmps']]) / n_active_hosts
+			avg_r_local_gb = sum([ans['cmps'][h]['r_local_gb'] for h in ans['cmps']]) / n_active_hosts
 
 		ans['avg_r_vcpus'] = avg_r_vcpus
 		ans['avg_r_memory_mb'] = avg_r_memory_mb
