@@ -184,32 +184,30 @@ def main():
 			# increment number of c/r/d
 			no_instr['no_' + cmd[i].name] += 1
 
-			snapshot = None
+			snapshot = p.snapshot()
 			if failure is not None:
 				no_failures[i] += 1
-				snapshot = {'failure': failure}
+				snapshot['failure'] = failure
 				run_on_bifrost(bifrost.update_no_failures, i, no_failures[i])
-			else:
-				snapshot = p.snapshot()
 				
-				# create mapping between aggregates names
-				# and snapshot names
-				new_data = {
-					'aggr_r_vcpus': snapshot['avg_r_vcpus'],
-					'aggr_r_memory_mb': snapshot['avg_r_memory_mb'],
-					'aggr_r_local_gb': snapshot['avg_r_local_gb'],
-					'aggr_no_active_cmps': snapshot['no_active_cmps']
-				}
+			# create mapping between aggregates names
+			# and snapshot names
+			new_data = {
+				'aggr_r_vcpus': snapshot['avg_r_vcpus'],
+				'aggr_r_memory_mb': snapshot['avg_r_memory_mb'],
+				'aggr_r_local_gb': snapshot['avg_r_local_gb'],
+				'aggr_no_active_cmps': snapshot['no_active_cmps']
+			}
 
-				def update_aggr(key):
-					old = aggregates[i][key]
-					new = (old * t + new_data[key]) / float(t + 1)
-					aggregates[i][key] = new
+			def update_aggr(key):
+				old = aggregates[i][key]
+				new = (old * t + new_data[key]) / float(t + 1)
+				aggregates[i][key] = new
 
-				update_aggr('aggr_r_vcpus')
-				update_aggr('aggr_r_memory_mb')
-				update_aggr('aggr_r_local_gb')
-				update_aggr('aggr_no_active_cmps')
+			update_aggr('aggr_r_vcpus')
+			update_aggr('aggr_r_memory_mb')
+			update_aggr('aggr_r_local_gb')
+			update_aggr('aggr_no_active_cmps')
 
 			run_on_bifrost(bifrost.add_snapshot, i, t, cmd[i].name, snapshot)
 			run_on_bifrost(bifrost.update_no_instr, no_instr)
