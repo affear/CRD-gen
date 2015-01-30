@@ -69,6 +69,12 @@ def seed():
 	response.status = 200
 	return body
 
+@route('/arch', method='GET')
+def architecture():
+	body, status = nova_api.architecture
+	response.status = 200
+	return body
+
 class ProxyAPI(api.CRDAPI):
 	'''
 		The API to access the proxy
@@ -115,6 +121,9 @@ class ProxyAPI(api.CRDAPI):
 
 	def seed(self):
 		return self._send_request('seed', method='GET')
+
+	def architecture(self):
+		return self._send_request('arch', method='GET')
 
 if __name__ == '__main__':
 	run(host='0.0.0.0', port=CONF.proxy_port)

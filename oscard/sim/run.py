@@ -164,11 +164,14 @@ def main():
 	except:
 		LOG.warning('Cannot open sim tab in Chrome')
 
-	LOG.info('Simulation ID: ' + str(sim_id))
+	LOG.info('Simulation ID: ' + str(sim_id) + ', Steps: ' + str(no_steps))
 
 	for t in xrange(no_steps):
 		cmd = {}
 		for i, p in enumerate(proxies):
+			# update architecture
+			run_on_bifrost(bifrost.update_architecture, i, p.architecture())
+
 			if counts[i] > 0:
 				cmd[i] = random.choice(cmds)
 			else: #there are no virtual machines... let's spawn one!

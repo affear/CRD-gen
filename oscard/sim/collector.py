@@ -41,6 +41,15 @@ class BifrostAPI(object):
 		self.app.put('/', 'last_sim_id', last_id)
 		return last_id
 
+	@task(name='bifrost.update_architecture')
+	def update_architecture(self, host_id, arch, sim_id=None):
+		if not sim_id:
+			sim_id = self.seed
+
+		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host_id)
+
+		return self.app.put(base_url, 'architecture', arch)
+
 	@task(name='bifrost.update_no_failures')
 	def update_no_failures(self, host_id, nf, sim_id=None):
 		if not sim_id:

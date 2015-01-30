@@ -105,13 +105,31 @@ class FakeAPI(CRDAPI):
 	def is_smart(self):
 		return {'smart': False}, 200
 
+	@property
+	def architecture(self):
+		arch = {}
+		arch[0] = {
+			'hostname': 'fakehost0',
+			'address': '42.42.42.2',
+			'vcpus': '??',
+			'memory_mb': '??',
+			'local_gb': '??',
+		}
+
+		arch[1] = {
+			'hostname': 'fakehost1',
+			'address': '42.42.42.4',
+			'vcpus': '??',
+			'memory_mb': '??',
+			'local_gb': '??',
+		}
+
+		return arch, 200
+
 	def snapshot(self):
 		metrics = {
-			'vcpus': '?',
 			'vcpus_used': '?',
-			'memory_mb': '?',
 			'memory_mb_used': '?',
-			'local_gb': '?',
 			'local_gb_used': '?',
 			'r_vcpus': '?',
 			'r_memory_mb': '?',
@@ -166,9 +184,31 @@ class NovaAPI(CRDAPI):
 	def server_ids(self):
 		servers = self.nova.servers.list()
 		return [s.id for s in servers]
+
+	@property
+	def architecture(self):
+		arch = {}
+		cmps = self.nova.hypervisors.list()
+
+		for c in cmps:
+			# update known cmps.
+			# append new ones at the end of the list.
+			# in this way a cmp will always be in the same position of the list.
+			if not c.host_ip in self._known_cmps:
+				self._known_cmps.append(c.host_ip)
+
+			cmp_index = self._known_cmps.index(c.host_ip)
+			arch[cmp_index] = {
+				'hostname': c.hypervisor_hostname,
+				'address': c.host_ip,
+				'vcpus': c.vcpus,
+				'memory_mb': c.memory_mb,
+				'local_gb': c.local_gb,
+			}
+				
+		return arch, 200
 	
 	def __init__(self):
-		self._active_cmps = []
 		self._curr_id = 0
 		self._os_auth_url = self._baseurl + ':' + str(CONF.keystone_port) + '/v2.0'
 		self._os_username = CONF.os_username
@@ -177,6 +217,9 @@ class NovaAPI(CRDAPI):
 
 		self.keystone = ksclient.Client(**self.kcreds)
 		self.nova = nvclient.Client(**self.ncreds)
+
+		cmps = self.nova.hypervisors.list()
+		self._known_cmps = [c.host_ip for c in cmps] 
 
 		# assigning to self.image the first cirros image
 		# or the first image possible
@@ -291,14 +334,8 @@ class NovaAPI(CRDAPI):
 			'cmps': {}
 		}
 		hosts = self.nova.hypervisors.list()
-		# retrieve only active hosts
+		# only active hosts
 		hosts = filter(lambda h: h.vcpus_used != 0, hosts)
-		# update active cmps.
-		# append new ones at the end of the list.
-		# in this way a cmp will always be in the same position of the list
-		for h in hosts:
-			if not h.host_ip in self._active_cmps:
-				self._active_cmps.append(h.host_ip)
 
 		#####
 		# if you want to retrieve the host from the server:
@@ -311,15 +348,12 @@ class NovaAPI(CRDAPI):
 		for h in hosts:
 			# cmps are always in the same order in the list.
 			# we can use their index as a unique ID.
-			host_index = self._active_cmps.index(h.host_ip)
+			host_index = self._known_cmps.index(h.host_ip)
 			ans['cmps'][host_index] = {
 				'hostname': h.hypervisor_hostname,
 				'address': h.host_ip,
-				'vcpus': h.vcpus,
 				'vcpus_used': h.vcpus_used,
-				'memory_mb': h.memory_mb,
 				'memory_mb_used': h.memory_mb_used,
-				'local_gb': h.local_gb,
 				'local_gb_used': h.local_gb_used,
 				'r_vcpus': float(h.vcpus_used) / h.vcpus,
 				'r_memory_mb': float(h.memory_mb_used) / h.memory_mb,
