@@ -137,14 +137,16 @@ class BifrostAPI(object):
 
 		elapsed_time = str(minutes) + 'm:' + str(seconds) + 's'
 
-		steps_run_dict = {}
-		for p in steps_run:
-			steps_run_dict[p] = {'steps_run': steps_run[p]}
-
 		data = {
 			'end': str(end),
 			'elapsed_time': elapsed_time,
-			'proxies': steps_run_dict
 		}
+
 		self.app.patch('/', {'running': False})
+
+		# add steps run to each proxy
+		for p_id in steps_run:
+			url = '/sims/' + str(id) + '/proxies/' + str(p_id)
+			self.app.patch(url, {'steps_run': steps_run[p_id]})
+
 		return self.app.patch('/sims/' + str(id), data)
