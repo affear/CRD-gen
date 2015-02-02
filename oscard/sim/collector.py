@@ -137,10 +137,14 @@ class BifrostAPI(object):
 
 		elapsed_time = str(minutes) + 'm:' + str(seconds) + 's'
 
+		steps_run_dict = {}
+		for p in steps_run:
+			steps_run_dict[p] = {'steps_run': steps_run[p]}
+
 		data = {
 			'end': str(end),
 			'elapsed_time': elapsed_time,
-			'steps_run': steps_run
+			'proxies': steps_run_dict
 		}
 		self.app.patch('/', {'running': False})
 		return self.app.patch('/sims/' + str(id), data)
