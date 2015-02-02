@@ -123,7 +123,7 @@ class BifrostAPI(object):
 		self.app.patch('/', {'running': True})
 		return id, self.app.put('/sims', str(id), data)
 
-	def add_end_to_current_sim(self):
+	def add_end_to_current_sim(self, steps_run):
 		default_formatting = '%Y-%m-%d %H:%M:%S.%f'
 		id = self.seed
 
@@ -139,7 +139,8 @@ class BifrostAPI(object):
 
 		data = {
 			'end': str(end),
-			'elapsed_time': elapsed_time
+			'elapsed_time': elapsed_time,
+			'steps_run': steps_run
 		}
 		self.app.patch('/', {'running': False})
 		return self.app.patch('/sims/' + str(id), data)

@@ -134,6 +134,7 @@ def main():
 	aggregates = {}
 	saturation = {}
 	prev_architecture = {}
+	steps_run = {}
 
 	for c in cmds_weighted:
 		no_instr['no_' + c[0].name] = 0
@@ -141,6 +142,7 @@ def main():
 	for i, p in enumerate(proxies):
 		counts[i] = 0
 		no_failures[i] = 0
+		steps_run[i] = no_steps
 		saturation[i] = False
 		prev_architecture[i] = p.architecture()
 		aggregates[i] = {
@@ -188,6 +190,7 @@ def main():
 				# i-th proxy is saturated...
 				# the simulation for him is over...
 				LOG.warning('Proxy ' + str(p.host) + ' is saturated. No cmd will run on it.')
+				steps_run[i] -= 1
 				continue
 
 			if counts[i] > 0:
@@ -236,7 +239,7 @@ def main():
 			run_on_bifrost(bifrost.update_aggregates, i, aggregates[i])
 
 	LOG.info(p.host + ': simulation ENDED')
-	bifrost.add_end_to_current_sim()
+	bifrost.add_end_to_current_sim(steps_run)
 
 	import time
 	for i, p in enumerate(proxies):
