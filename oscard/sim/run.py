@@ -132,12 +132,17 @@ def main():
 	no_instr = {}
 	no_failures = {}
 	aggregates = {}
+	saturation = {}
+	prev_architecture = {}
+
 	for c in cmds_weighted:
 		no_instr['no_' + c[0].name] = 0
 
 	for i, p in enumerate(proxies):
 		counts[i] = 0
 		no_failures[i] = 0
+		saturation[i] = False
+		prev_architecture[i] = p.architecture()
 		aggregates[i] = {
 			'aggr_r_vcpus': 0,
 			'aggr_r_memory_mb': 0,
@@ -170,7 +175,20 @@ def main():
 		cmd = {}
 		for i, p in enumerate(proxies):
 			# update architecture
-			run_on_bifrost(bifrost.update_architecture, i, p.architecture())
+			new_architecture = p.architecture()
+			run_on_bifrost(bifrost.update_architecture, i, new_architecture)
+
+			if len(new_architecture) > len(prev_architecture[i]):
+				# this means that a node has been added.
+				# so it means that the proxy is no more saturated!
+				saturation[i] = False
+
+			prev_architecture[i] = new_architecture
+			if saturation[i]:
+				# i-th proxy is saturated...
+				# the simulation for him is over...
+				LOG.warning('Proxy ' + str(p.host) + ' is saturated. No cmd will run on it.')
+				continue
 
 			if counts[i] > 0:
 				cmd[i] = random.choice(cmds)
@@ -189,6 +207,10 @@ def main():
 				no_failures[i] += 1
 				snapshot['failure'] = failure
 				run_on_bifrost(bifrost.update_no_failures, i, no_failures[i])
+
+				#TODO find a better way to do this...
+				if 'No valid host' in failure['msg']:
+					saturation[i] = True
 				
 			# create mapping between aggregates names
 			# and snapshot names
