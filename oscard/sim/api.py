@@ -250,7 +250,6 @@ class NovaAPI(CRDAPI):
 			flavor=flavor
 		)
 
-		# Poll at 1 second intervals, until the status is no longer 'BUILD'
 		waiting_time = 0
 		status = instance.status
 		while status == 'BUILD' and waiting_time < self._TIMEOUT:
@@ -259,13 +258,21 @@ class NovaAPI(CRDAPI):
 			# Retrieve the instance again so the status field updates
 			instance = self.nova.servers.get(instance.id)
 			status = instance.status
+
+		if status == 'BUILD' and waiting_time == self._TIMEOUT:
+			return {'msg': 'timeout exceeded on create', 'status': status}, 400
 		
 		if status == 'ACTIVE':
 			# ok the machine is up
 			self._curr_id += 1
 			return {'id': instance.id}, 201
 
-		return {'msg': 'error on build', 'status': status}, 400
+		# there was a failure in OpenStack
+		return {
+			'msg': instance.fault['message'],
+			'fault': instance.fault,
+			'status': status
+		}, 400
 
 	def resize(self, **kwargs):
 		'''
@@ -294,8 +301,16 @@ class NovaAPI(CRDAPI):
 			server = self.nova.servers.get(server.id)
 			status = server.status
 
-		if status != 'VERIFY_RESIZE' and waiting_time == self._TIMEOUT:
-			return {'msg': 'timeout exceeded on resize'}, 400
+		if waiting_time == self._TIMEOUT and status != 'VERIFY_RESIZE':
+			return {'msg': 'timeout exceeded on resize', 'status': status}, 400
+
+		if status != 'VERIFY_RESIZE':
+			# there was a failure in OpenStack
+			return {
+				'msg': server.fault['message'],
+				'fault': server.fault,
+				'status': status
+			}, 400
 
 		server.confirm_resize()
 
@@ -307,8 +322,16 @@ class NovaAPI(CRDAPI):
 			server = self.nova.servers.get(server.id)
 			status = server.status
 
-		if status != 'ACTIVE' and waiting_time == self._TIMEOUT:
-			return {'msg': 'timeout exceeded on confirm_resize'}, 400
+		if waiting_time == self._TIMEOUT and status != 'ACTIVE':
+			return {'msg': 'timeout exceeded on confirm_resize', 'status': status}, 400
+
+		if status != 'ACTIVE':
+			# there was a failure in OpenStack
+			return {
+				'msg': server.fault['message'],
+				'fault': server.fault,
+				'status': status
+			}, 400
 
 		return {'id': id}, 200
 
