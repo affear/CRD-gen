@@ -189,7 +189,7 @@ def main():
 			if saturation[i]:
 				# i-th proxy is saturated...
 				# the simulation for him is over...
-				LOG.warning('Proxy ' + str(p.host) + ' is saturated. No cmd will run on it.')
+				LOG.warning(str(t) + ': proxy ' + str(p.host) + ' is saturated. No cmd will run on it.')
 				steps_run[i] -= 1
 				continue
 
