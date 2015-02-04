@@ -159,7 +159,7 @@ from novaclient.exceptions import NotFound
 class NovaAPI(CRDAPI):
 	_baseurl = 'http://' + CONF.ctrl_host
 	_instance_basename = 'fake'
-	_TIMEOUT = 10 # preventing deadlocks
+	_TIMEOUT = 20 # preventing deadlocks
 	_POLL_TIME = 0.5 # polling time
 
 	@property
@@ -244,33 +244,32 @@ class NovaAPI(CRDAPI):
 		flavor_id = random.choice(self.flavors.keys())
 		flavor = self.flavors[flavor_id]
 
-		instance = self.nova.servers.create(
+		server = self.nova.servers.create(
 			name=self._instance_basename + str(self._curr_id),
 			image=self.image,
 			flavor=flavor
 		)
 
 		waiting_time = 0
-		status = instance.status
+		status = server.status
 		while status == 'BUILD' and waiting_time < self._TIMEOUT:
 			time.sleep(self._POLL_TIME)
 			waiting_time += 1
 			# Retrieve the instance again so the status field updates
-			instance = self.nova.servers.get(instance.id)
-			status = instance.status
+			server = self.nova.servers.get(server.id)
+			status = server.status
 
-		if status == 'BUILD' and waiting_time == self._TIMEOUT:
+		if waiting_time == self._TIMEOUT:
 			return {'msg': 'timeout exceeded on create', 'status': status}, 400
 		
 		if status == 'ACTIVE':
 			# ok the machine is up
 			self._curr_id += 1
-			return {'id': instance.id}, 201
+			return {'id': server.id}, 201
 
 		# there was a failure in OpenStack
 		return {
-			'msg': instance.fault['message'],
-			'fault': instance.fault,
+			'msg': server.fault['message'],
 			'status': status
 		}, 400
 
@@ -301,14 +300,13 @@ class NovaAPI(CRDAPI):
 			server = self.nova.servers.get(server.id)
 			status = server.status
 
-		if waiting_time == self._TIMEOUT and status != 'VERIFY_RESIZE':
+		if waiting_time == self._TIMEOUT:
 			return {'msg': 'timeout exceeded on resize', 'status': status}, 400
 
 		if status != 'VERIFY_RESIZE':
 			# there was a failure in OpenStack
 			return {
 				'msg': server.fault['message'],
-				'fault': server.fault,
 				'status': status
 			}, 400
 
@@ -322,14 +320,13 @@ class NovaAPI(CRDAPI):
 			server = self.nova.servers.get(server.id)
 			status = server.status
 
-		if waiting_time == self._TIMEOUT and status != 'ACTIVE':
+		if waiting_time == self._TIMEOUT:
 			return {'msg': 'timeout exceeded on confirm_resize', 'status': status}, 400
 
 		if status != 'ACTIVE':
 			# there was a failure in OpenStack
 			return {
 				'msg': server.fault['message'],
-				'fault': server.fault,
 				'status': status
 			}, 400
 
@@ -341,14 +338,19 @@ class NovaAPI(CRDAPI):
 		server = self.nova.servers.get(id)
 		server.delete()
 
-		while True:
+		waiting_time = 0
+		while waiting_time < self._TIMEOUT:
 			time.sleep(self._POLL_TIME)
+			waiting_time += 1
 			try:
 				self.nova.servers.get(id)
 			except NotFound:
 				# this means that the server is not found,
 				# so it has been really deleted!
 				break
+
+		if waiting_time == self._TIMEOUT:
+			return {'msg': 'timeout exceeded on delete'}, 400
 
 		return {'id': id}, 200
 
