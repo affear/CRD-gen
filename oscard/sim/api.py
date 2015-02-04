@@ -34,6 +34,22 @@ CONF = cfg.CONF
 CONF.register_opts(oscard_opts)
 LOG = log.get_logger(__name__)
 
+def reraise_as_400(fun):
+	def wrapped(*args, **kwargs):
+		try:
+			return fun(*args, **kwargs)
+		except Exception as e:
+			return {'msg': e.message}, 400
+	return wrapped
+
+def return_code(fun, code):
+	def wrapped(*args, **kwargs):
+			res = fun(*args, **kwargs)
+			if type(res) is not tuple:
+				return res, code
+			return res
+	return wrapped
+
 class CRDAPI(object):
 	_baseurl = 'http://localhost'
 
@@ -161,6 +177,11 @@ class NovaAPI(CRDAPI):
 	_instance_basename = 'fake'
 	_TIMEOUT = 20 # preventing deadlocks
 	_POLL_TIME = 0.5 # polling time
+	# statuses
+	_ACTIVE_STATUS = 'ACTIVE'
+	_VERIFY_RESIZE_STATUS = 'VERIFY_RESIZE'
+	_ERROR_STATUS = 'ERROR'
+	_TIMEOUT_EXCEEDED_STATUS = 'TIMEOUT_EXCEEDED'
 
 	@property
 	def kcreds(self):
@@ -181,11 +202,14 @@ class NovaAPI(CRDAPI):
 		}
 
 	@property
+	@reraise_as_400
 	def server_ids(self):
 		servers = self.nova.servers.list()
 		return [s.id for s in servers]
 
 	@property
+	@reraise_as_400
+	@return_code(200)
 	def architecture(self):
 		arch = {}
 		cmps = self.nova.hypervisors.list()
@@ -206,7 +230,7 @@ class NovaAPI(CRDAPI):
 				'local_gb': c.local_gb,
 			}
 				
-		return arch, 200
+		return arch
 	
 	def __init__(self):
 		self._curr_id = 0
@@ -235,6 +259,26 @@ class NovaAPI(CRDAPI):
 		for i in xrange(1, 6):
 			self.flavors[i] = self.nova.flavors.get(i)
 
+	def _until_timeout(self, server, wanted_status='ACTIVE'):
+		waiting_time = 0
+		status = server.status
+		while status != wanted_status and waiting_time < self._TIMEOUT:
+			if status == self._ERROR_STATUS:
+				break
+
+			time.sleep(self._POLL_TIME)
+			waiting_time += 1
+			# Retrieve the instance again so the status field updates
+			server = self.nova.servers.get(server.id)
+			status = server.status
+
+		if waiting_time == self._TIMEOUT:
+			status = self._TIMEOUT_EXCEEDED_STATUS
+
+		return status
+
+	@reraise_as_400
+	@return_code(201)
 	def create(self, **kwargs):
 		'''
 			Creates a new instance.
@@ -250,29 +294,21 @@ class NovaAPI(CRDAPI):
 			flavor=flavor
 		)
 
-		waiting_time = 0
-		status = server.status
-		while status == 'BUILD' and waiting_time < self._TIMEOUT:
-			time.sleep(self._POLL_TIME)
-			waiting_time += 1
-			# Retrieve the instance again so the status field updates
-			server = self.nova.servers.get(server.id)
-			status = server.status
+		status = self._until_timeout(server)
 
-		if waiting_time == self._TIMEOUT:
-			return {'msg': 'timeout exceeded on create', 'status': status}, 400
+		if status == self._TIMEOUT_EXCEEDED_STATUS:
+			raise Exception('timeout exceeded on create')
 		
-		if status == 'ACTIVE':
+		if status == self._ACTIVE_STATUS:
 			# ok the machine is up
 			self._curr_id += 1
-			return {'id': server.id}, 201
+			return {'id': server.id}
 
 		# there was a failure in OpenStack
-		return {
-			'msg': server.fault['message'],
-			'status': status
-		}, 400
+		raise Exception(server.fault.get('message', ''))
 
+	@reraise_as_400
+	@return_code(200)
 	def resize(self, **kwargs):
 		'''
 			Blocking call untill the resize has been confirmed
@@ -291,47 +327,28 @@ class NovaAPI(CRDAPI):
 		flavor = self.flavors[flavor_id]
 		server.resize(flavor)
 
-		waiting_time = 0
-		status = server.status
-		while status != 'VERIFY_RESIZE' and waiting_time < self._TIMEOUT:
-			time.sleep(self._POLL_TIME)
-			waiting_time += 1
-			# Retrieve the instance again so the status field updates
-			server = self.nova.servers.get(server.id)
-			status = server.status
+		status = self._until_timeout(server, wanted_status='VERIFY_RESIZE')
 
-		if waiting_time == self._TIMEOUT:
-			return {'msg': 'timeout exceeded on resize', 'status': status}, 400
+		if status == self._TIMEOUT_EXCEEDED_STATUS:
+			raise Exception('timeout exceeded on resize')
 
-		if status != 'VERIFY_RESIZE':
-			# there was a failure in OpenStack
-			return {
-				'msg': server.fault['message'],
-				'status': status
-			}, 400
+		if status == self._ERROR_STATUS:
+			raise Exception(server.fault.get('message', ''))
 
 		server.confirm_resize()
 
-		waiting_time = 0
-		status = server.status
-		while status != 'ACTIVE' and waiting_time < self._TIMEOUT:
-			time.sleep(self._POLL_TIME)
-			waiting_time += 1
-			server = self.nova.servers.get(server.id)
-			status = server.status
+		status = self._until_timeout(server)
 
-		if waiting_time == self._TIMEOUT:
-			return {'msg': 'timeout exceeded on confirm_resize', 'status': status}, 400
+		if status == self._TIMEOUT_EXCEEDED_STATUS:
+			raise Exception('timeout exceeded on confirm_resize')
 
-		if status != 'ACTIVE':
-			# there was a failure in OpenStack
-			return {
-				'msg': server.fault['message'],
-				'status': status
-			}, 400
+		if status == self._ERROR_STATUS:
+			raise Exception(server.fault.get('message', ''))
 
-		return {'id': id}, 200
+		return {'id': id}
 
+	@reraise_as_400
+	@return_code(200)
 	def destroy(self, **kwargs):
 		id = random.choice(self.server_ids)
 
@@ -350,10 +367,12 @@ class NovaAPI(CRDAPI):
 				break
 
 		if waiting_time == self._TIMEOUT:
-			return {'msg': 'timeout exceeded on delete'}, 400
+			raise Exception('timeout exceeded on delete')
 
-		return {'id': id}, 200
+		return {'id': id}
 
+	@reraise_as_400
+	@return_code(200)
 	def snapshot(self):
 		ans = {
 			'cmps': {}
@@ -401,9 +420,11 @@ class NovaAPI(CRDAPI):
 		ans['avg_r_local_gb'] = avg_r_local_gb
 		ans['no_active_cmps'] = n_active_hosts
 
-		return ans, 200
+		return ans
 
+	@reraise_as_400
+	@return_code(200)
 	def is_smart(self):
 		services = self.nova.services.list()
 		names = [s.binary for s in services]
-		return {'smart': 'nova-consolidator' in names}, 200
+		return {'smart': 'nova-consolidator' in names}
