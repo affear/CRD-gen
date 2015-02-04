@@ -308,6 +308,7 @@ class NovaAPI(CRDAPI):
 			return {'id': server.id}
 
 		# there was a failure in OpenStack
+		server = self.nova.servers.get(id)
 		raise Exception(server.fault.get('message', ''))
 
 	@reraise_as_400
@@ -336,6 +337,7 @@ class NovaAPI(CRDAPI):
 			raise Exception('timeout exceeded on resize')
 
 		if status == self._ERROR_STATUS:
+			server = self.nova.servers.get(id)
 			raise Exception(server.fault.get('message', ''))
 
 		server.confirm_resize()
@@ -346,6 +348,7 @@ class NovaAPI(CRDAPI):
 			raise Exception('timeout exceeded on confirm_resize')
 
 		if status == self._ERROR_STATUS:
+			server = self.nova.servers.get(id)
 			raise Exception(server.fault.get('message', ''))
 
 		return {'id': id}
