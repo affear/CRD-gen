@@ -12,6 +12,7 @@ while n > 0:
 	# why a while loop?
 	# I think that if instances are a lot
 	# openstack returns only a part of them... Baaaa
+	LOG.info('Destroying ' + str(n) + ' instances...')
 	for x in xrange(n):
 		res, code = api.destroy()
 		if code == 200:
