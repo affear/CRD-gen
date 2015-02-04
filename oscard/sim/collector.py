@@ -19,6 +19,26 @@ LOG = log.get_logger(__name__)
 
 cel = Celery('bifrost_tasks', backend='amqp', broker='amqp://guest@localhost//')
 
+class FakeFirebaseApplication(object):
+	'''
+		Class that mimics Firebase in a fake context.
+		It will be used once results cannot be stored online.
+	'''
+	id = 0
+
+	def put(self, *args, **kwargs):
+		return {}
+
+	def patch(self, *args, **kwargs):
+		return {}
+
+	def get(self, *args, **kwargs):
+		if args[0] == '/last_sim_id':
+			return self.id
+
+		if args[0] == '/sims/' + str(self.id) and args[1] == 'start':
+			return str(datetime.datetime.now())
+
 class BifrostAPI(object):
 
 	@property
@@ -31,7 +51,15 @@ class BifrostAPI(object):
 		# we do it inside __init__ because of conflicts
 		# between oslo and celery worker...
 		config.init_conf()
+		LOG.info('Connecting to firebase backend (' + CONF.fb_backend + ')...')
 		self.app = firebase.FirebaseApplication(CONF.fb_backend, None)
+
+		try:
+			# doing a get request to test connection
+			self.seed
+		except Exception as e:
+			self.app = FakeFirebaseApplication()
+			LOG.warning('No Firebase backend created! Results will NOT be stored.')
 
 		if self.seed is None:
 			self.app.put('/', 'last_sim_id', -1)
