@@ -46,12 +46,11 @@ def return_code(code):
 	return wrapped0
 
 def reraise_as_400(fun):
-	@return_code(400)
 	def wrapped(*args, **kwargs):
 		try:
 			return fun(*args, **kwargs)
 		except Exception as e:
-			return {'msg': e.message}
+			return {'msg': e.message}, 400
 	return wrapped
 
 class CRDAPI(object):
