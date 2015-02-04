@@ -42,13 +42,16 @@ def reraise_as_400(fun):
 			return {'msg': e.message}, 400
 	return wrapped
 
-def return_code(fun, code):
-	def wrapped(*args, **kwargs):
+def return_code(code):
+	def wrapped0(fun):
+		def wrapped1(*args, **kwargs):
 			res = fun(*args, **kwargs)
 			if type(res) is not tuple:
 				return res, code
 			return res
-	return wrapped
+		return wrapped1
+
+	return wrapped0
 
 class CRDAPI(object):
 	_baseurl = 'http://localhost'
