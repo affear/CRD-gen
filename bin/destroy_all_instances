@@ -1,0 +1,21 @@
+#!venv/bin/python
+from oscard import config, log
+config.init_conf()
+
+from oscard.sim.api import NovaAPI
+api = NovaAPI()
+
+LOG = log.get_logger(__name__)
+
+n = len(api.server_ids)
+while n > 0:
+	# why a while loop?
+	# I think that if instances are a lot
+	# openstack returns only a part of them... Baaaa
+	for x in xrange(n):
+		res, code = api.destroy()
+		if code == 200:
+			LOG.info(res)
+		else:
+			LOG.error(res)
+	n = len(api.server_ids)
