@@ -34,14 +34,6 @@ CONF = cfg.CONF
 CONF.register_opts(oscard_opts)
 LOG = log.get_logger(__name__)
 
-def reraise_as_400(fun):
-	def wrapped(*args, **kwargs):
-		try:
-			return fun(*args, **kwargs)
-		except Exception as e:
-			return {'msg': e.message}, 400
-	return wrapped
-
 def return_code(code):
 	def wrapped0(fun):
 		def wrapped1(*args, **kwargs):
@@ -52,6 +44,15 @@ def return_code(code):
 		return wrapped1
 
 	return wrapped0
+
+def reraise_as_400(fun):
+	@return_code(400)
+	def wrapped(*args, **kwargs):
+		try:
+			return fun(*args, **kwargs)
+		except Exception as e:
+			return {'msg': e.message}
+	return wrapped
 
 class CRDAPI(object):
 	_baseurl = 'http://localhost'
