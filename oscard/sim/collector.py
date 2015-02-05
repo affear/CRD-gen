@@ -104,15 +104,6 @@ class BifrostAPI(object):
 
 		return self.app.patch('/sims/' + str(sim_id), no_instr)
 
-	@task(name='bifrost.update_aggregates')
-	def update_aggregates(self, host_id, aggr, sim_id=None):
-		if not sim_id :
-			sim_id = self.seed
-
-		base_url = '/sims/' + str(sim_id) + '/proxies/' + str(host_id)
-
-		return self.app.patch(base_url, aggr)
-
 	def add_sim(self, steps, hosts_dict, id=None, created_at=None):
 		'''
 			- steps: the number of steps

@@ -234,9 +234,11 @@ def main():
 			update_aggr('aggr_r_local_gb')
 			update_aggr('aggr_no_active_cmps')
 
+			# put aggregates into snapshot
+			snapshot.update(aggregates[i])
+
 			run_on_bifrost(bifrost.add_snapshot, i, t, cmd[i].name, snapshot)
 			run_on_bifrost(bifrost.update_no_instr, no_instr)
-			run_on_bifrost(bifrost.update_aggregates, i, aggregates[i])
 
 	LOG.info(p.host + ': simulation ENDED')
 	bifrost.add_end_to_current_sim(steps_run)
