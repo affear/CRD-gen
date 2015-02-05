@@ -5,7 +5,7 @@ from oslo.config import cfg
 import random
 from oscard import log
 from oscard.sim.proxy import ProxyAPI
-from oscard.sim.collector import BifrostAPI
+from oscard.sim import collector
 import webbrowser
 
 sim_group = cfg.OptGroup(name='sim')
@@ -28,7 +28,7 @@ CONF.register_opts(sim_opts, sim_group)
 LOG = log.get_logger(__name__)
 
 proxies = [ProxyAPI(host) for host in CONF.sim.proxy_hosts]
-bifrost = BifrostAPI()
+bifrost = collector.get_fb_backend()
 
 # Virtual classes for commands
 class BaseCommand(object):

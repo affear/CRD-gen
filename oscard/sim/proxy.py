@@ -62,7 +62,7 @@ def smart():
 	response.status = status
 	return body
 
-bifrost = collector.BifrostAPI()
+bifrost = collector.get_fb_backend()
 @route('/seed', method='GET')
 def seed():
 	body = {'seed': bifrost.seed}

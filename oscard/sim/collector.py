@@ -39,8 +39,19 @@ class FakeFirebaseApplication(object):
 		if args[0] == '/sims/' + str(self.id) and args[1] == 'start':
 			return str(datetime.datetime.now())
 
-class BifrostAPI(object):
+_bifrost = None
+def get_fb_backend():
+	global _bifrost
+	if _bifrost is None:
+		_bifrost = BifrostAPI()
+	return _bifrost
 
+class BifrostAPI(object):
+	'''
+		Bifrost Firabase app API.
+		Never instantiate this class with BifrostAPI().
+		Use `get_fb_backend` instead.
+	'''
 	@property
 	def seed(self):
 		return self.app.get('/last_sim_id', None)
