@@ -60,7 +60,7 @@ If you do this for developing reason remeber that you can set `fake=True` in con
 ### Docker Run
 
 ```
-	$ docker run -ti -p 80:3000 affear/oscard:alpha
+	$ docker run -ti -p 3000:3000 --rm --name oscard affear/oscard:alpha
 ```
 
 If you are developing and you want to avoid continuously rebuilding Oscard:
