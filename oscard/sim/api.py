@@ -128,8 +128,16 @@ class FakeAPI(CRDAPI):
 
 		return payload, status
 
-	def is_smart(self):
-		return {'smart': False}, 200
+	def active_services(self):
+		services = ['fakeservice1', 'fakeservice2']
+		data = {}
+		for i, s in enumerate(services):
+			data[i] = {
+				'binary': s,
+				'n': self.rnd.randint(1, 42)
+			}
+
+		return data, 200
 
 	@property
 	def architecture(self):
@@ -444,7 +452,16 @@ class NovaAPI(CRDAPI):
 
 	@reraise_as_400
 	@return_code(200)
-	def is_smart(self):
+	def active_services(self):
+		data = {}
 		services = self.nova.services.list()
 		names = [s.binary for s in services]
-		return {'smart': 'nova-consolidator' in names}
+		unique_names = list(set(names))
+
+		for i, name in enumerate(unique_names):
+			data[i] = {
+				'binary': name,
+				'n': names.count(name)
+			}
+
+		return data

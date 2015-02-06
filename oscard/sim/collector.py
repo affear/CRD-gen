@@ -124,15 +124,39 @@ class BifrostAPI(object):
 	def add_sim(self, steps, hosts_dict, id=None, created_at=None):
 		'''
 			- steps: the number of steps
-			- hosts_dict: a dict with host_id as key and simulation
-				type and host address as value. For instance:
+			- hosts_dict: a dict with host_id as keys and, as values:
+				active services (a dictionary described as below) and host address
+			
+			For instance:
 					{
 						1: {
-							'type': 'normal',
+							'services': {
+								0: {
+									'n-api',
+									'n': 1
+								},
+								1: {
+									'n-cert',
+									'n': 2
+								},
+							},
 							'address': '192.168.0.1:7000'
 						},
 						2: {
-							'type': 'smart',
+							'services': {
+								0: {
+									'n-comp',
+									'n': 25
+								}
+								1: {
+									'n-cond',
+									'n': 1
+								},
+								2: {
+									'n-auth',
+									'n': 3
+								}
+							},
 							'address': '10.169.4.2:3000'
 						}
 					}

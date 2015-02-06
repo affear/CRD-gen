@@ -68,9 +68,9 @@ def snapshot():
 	response.status = status
 	return body
 
-@route('/smart', method='GET')
-def smart():
-	body, status = nova_api.is_smart()
+@route('/services', method='GET')
+def services():
+	body, status = nova_api.active_services()
 	response.status = status
 	return body
 
@@ -130,8 +130,8 @@ class ProxyAPI(api.CRDAPI):
 	def snapshot(self):
 		return self._send_request('snapshot', method='GET')
 
-	def is_smart(self):
-		return self._send_request('smart', method='GET')
+	def services(self):
+		return self._send_request('services', method='GET')
 
 	def seed(self):
 		return self._send_request('seed', method='GET')

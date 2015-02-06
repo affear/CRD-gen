@@ -153,9 +153,8 @@ def main():
 			'aggr_no_active_cmps': 0
 		}
 
-		sim_type = 'smart' if p.is_smart()['smart'] else 'normal'
 		hosts_dict[i] = {
-			'type': sim_type,
+			'services': p.services(),
 			'address': p.host
 		}
 
