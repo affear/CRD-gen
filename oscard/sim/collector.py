@@ -36,6 +36,9 @@ class FakeFirebaseApplication(object):
 		if args[0] == '/last_sim_id':
 			return self.id
 
+		if args[0] == '/running':
+			return False
+
 		if args[0] == '/sims/' + str(self.id) and args[1] == 'start':
 			return str(datetime.datetime.now())
 
@@ -79,6 +82,9 @@ class BifrostAPI(object):
 		last_id = self.seed + 1
 		self.app.put('/', 'last_sim_id', last_id)
 		return last_id
+
+	def is_sim_running(self):
+		return self.app.get('/running', None)
 
 	@task(name='bifrost.update_architecture')
 	def update_architecture(self, host_id, arch, sim_id=None):

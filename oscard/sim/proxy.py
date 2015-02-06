@@ -24,6 +24,7 @@ CONF = cfg.CONF
 CONF.register_opts(proxy_opts)
 LOG = log.get_logger(__name__)
 
+bifrost = collector.get_fb_backend()
 nova_api = None
 if CONF.fake:
 	LOG.info('using FakeAPI')
@@ -31,6 +32,17 @@ if CONF.fake:
 else:
 	LOG.info('using NovaAPI')
 	nova_api = api.NovaAPI()
+
+@route('/init', method='POST')
+def init():
+	if bifrost.is_sim_running():
+		body = {'msg': 'Cannot init proxy while simulation is running!'}
+		status = 400
+	else:
+		body, status = nova_api.init(**request.json)
+
+	response.status = status
+	return body
 
 @route('/create', method='POST')
 def create():
@@ -62,7 +74,6 @@ def smart():
 	response.status = status
 	return body
 
-bifrost = collector.get_fb_backend()
 @route('/seed', method='GET')
 def seed():
 	body = {'seed': bifrost.seed}
@@ -103,6 +114,9 @@ class ProxyAPI(api.CRDAPI):
 			raise Exception(body)
 		
 		return body
+
+	def init(self, **kwargs):
+		return self._send_request('init', method='POST', **kwargs)
 
 	def create(self, **kwargs):
 		return self._send_request('create', method='POST', **kwargs)

@@ -1,6 +1,7 @@
-import time, random
+import time
 from oslo.config import cfg
 from oscard import log
+from oscard import randomizer
 
 oscard_opts = [
 	cfg.StrOpt(
@@ -66,15 +67,21 @@ class CRDAPI(object):
 		raise NotImplementedError
 
 class FakeAPI(CRDAPI):
+	rnd = randomizer.get_randomizer()
+
+	def init(self, **kwargs):
+		self.rnd = randomizer.get_randomizer()
+		seed = randomizer.get_seed()
+		return {'seed': seed}, 200
 
 	def create(self, **kwargs):
 		payload = {}
 		status = 200
 		log_level = None
-		ok = bool(random.getrandbits(1))
+		ok = bool(self.rnd.getrandbits(1))
 
 		if ok:
-			payload = {'id': random.randint(0, 1000), 'args': kwargs}
+			payload = {'id': self.rnd.randint(0, 1000), 'args': kwargs}
 			log_level = LOG.info
 		else:
 			status = 400
@@ -89,7 +96,7 @@ class FakeAPI(CRDAPI):
 		payload = {}
 		status = 200
 		log_level = None
-		ok = bool(random.getrandbits(1))
+		ok = bool(self.rnd.getrandbits(1))
 
 		if ok:
 			payload = {'body': 'resized', 'args': kwargs}
@@ -107,7 +114,7 @@ class FakeAPI(CRDAPI):
 		payload = {}
 		status = 200
 		log_level = None
-		ok = bool(random.getrandbits(1))
+		ok = bool(self.rnd.getrandbits(1))
 
 		if ok:
 			payload = {'body': 'destroyed', 'args': kwargs}
@@ -236,6 +243,7 @@ class NovaAPI(CRDAPI):
 		return arch
 	
 	def __init__(self):
+		self._rnd = randomizer.get_randomizer()
 		self._curr_id = 0
 		self._os_auth_url = self._baseurl + ':' + str(CONF.keystone_port) + '/v2.0'
 		self._os_username = CONF.os_username
@@ -281,6 +289,12 @@ class NovaAPI(CRDAPI):
 		return status
 
 	@reraise_as_400
+	@return_code(200)
+	def init(self, **kwargs):
+		self._rnd = randomizer.get_randomizer()
+		return {'seed': randomizer.get_seed()}
+
+	@reraise_as_400
 	@return_code(201)
 	def create(self, **kwargs):
 		'''
@@ -288,7 +302,7 @@ class NovaAPI(CRDAPI):
 			This call is blocking untill the instance reaches an ACTIVE status,
 			or fails
 		'''
-		flavor_id = random.choice(self.flavors.keys())
+		flavor_id = self._rnd.choice(self.flavors.keys())
 		flavor = self.flavors[flavor_id]
 
 		server = self.nova.servers.create(
@@ -319,14 +333,14 @@ class NovaAPI(CRDAPI):
 			and the instance is in status ACTIVE
 		'''
 		
-		id = random.choice(self.server_ids)
+		id = self._rnd.choice(self.server_ids)
 		server = self.nova.servers.get(id)
 
 		# remove the already chosen flavor from
 		# flavors ids
 		flavors_ok = self.flavors.keys()
 		flavors_ok.remove(int(server.flavor['id']))
-		flavor_id = random.choice(flavors_ok)
+		flavor_id = self._rnd.choice(flavors_ok)
 
 		flavor = self.flavors[flavor_id]
 		server.resize(flavor)
@@ -356,7 +370,7 @@ class NovaAPI(CRDAPI):
 	@reraise_as_400
 	@return_code(200)
 	def destroy(self, **kwargs):
-		id = random.choice(self.server_ids)
+		id = self._rnd.choice(self.server_ids)
 
 		server = self.nova.servers.get(id)
 		server.delete()

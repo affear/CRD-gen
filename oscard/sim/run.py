@@ -2,10 +2,10 @@ from oscard import config
 config.init_conf()
 
 from oslo.config import cfg
-import random
 from oscard import log
 from oscard.sim.proxy import ProxyAPI
 from oscard.sim import collector
+from oscard import randomizer
 import webbrowser
 
 sim_group = cfg.OptGroup(name='sim')
@@ -29,6 +29,7 @@ LOG = log.get_logger(__name__)
 
 proxies = [ProxyAPI(host) for host in CONF.sim.proxy_hosts]
 bifrost = collector.get_fb_backend()
+random = randomizer.get_randomizer()
 
 # Virtual classes for commands
 class BaseCommand(object):
@@ -158,6 +159,15 @@ def main():
 			'address': p.host
 		}
 
+		# init every proxy
+		try:
+			resp = p.init()
+		except Exception as e:
+			LOG.error(e.message['msg'])
+			return
+
+		LOG.debug('Proxy inited with seed ' + str(resp['seed']))
+
 	sim_id, _ = bifrost.add_sim(no_steps, hosts_dict)
 
 	# open tab in chrome
@@ -246,7 +256,7 @@ def main():
 	import time
 	for i, p in enumerate(proxies):
 		# removing all remaining instances
-		TIMEOUT = 30
+		TIMEOUT = 10
 		LOG.info(p.host + ': destroying all remaining instances in ' + str(TIMEOUT) + ' seconds')
 		for t in xrange(1, TIMEOUT + 1):
 			if t % 5 == 0:
