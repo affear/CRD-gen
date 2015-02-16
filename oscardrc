@@ -6,6 +6,7 @@ fi
 
 source venv/bin/activate
 export PYTHONPATH="$(pwd):$PYTHONPATH"
+alias run_oscard='docker run -ti -p 3000:3000 -v $(pwd)/oscard.conf:/oscard/oscard.conf --rm --name oscard affear/oscard:alpha'
 
 function start_celery_worker {
 	local suffix
