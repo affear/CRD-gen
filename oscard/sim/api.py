@@ -296,6 +296,21 @@ class NovaAPI(CRDAPI):
 
 		return status
 
+	def _get_random_active_server(self):
+		ids = list(self.server_ids) #copy ids
+
+		id = self._rnd.choice(ids)
+		server = self.nova.servers.get(id)
+
+		while server.status != self._ACTIVE_STATUS:
+			ids.remove(id)
+			id = self._rnd.choice(ids)
+			server = self.nova.servers.get(id)
+
+		if server.status == self._ACTIVE_STATUS:
+			return server
+		return None
+
 	@reraise_as_400
 	@return_code(200)
 	def init(self, **kwargs):
@@ -341,8 +356,10 @@ class NovaAPI(CRDAPI):
 			and the instance is in status ACTIVE
 		'''
 		
-		id = self._rnd.choice(self.server_ids)
-		server = self.nova.servers.get(id)
+		server = self._get_random_active_server()
+
+		if server is None:
+			raise Exception('No ACTIVE server found')
 
 		# remove the already chosen flavor from
 		# flavors ids
@@ -378,9 +395,11 @@ class NovaAPI(CRDAPI):
 	@reraise_as_400
 	@return_code(200)
 	def destroy(self, **kwargs):
-		id = self._rnd.choice(self.server_ids)
+		server = self._get_random_active_server()
 
-		server = self.nova.servers.get(id)
+		if server is None:
+			raise Exception('No ACTIVE server found')
+
 		server.delete()
 
 		waiting_time = 0
