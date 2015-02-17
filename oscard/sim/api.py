@@ -396,7 +396,7 @@ class NovaAPI(CRDAPI):
 			server = self.nova.servers.get(id)
 			raise Exception(server.fault.get('message', ''))
 
-		return {'id': id}
+		return {'id': server.id}
 
 	@reraise_as_400
 	@return_code(200)
@@ -422,7 +422,7 @@ class NovaAPI(CRDAPI):
 		if waiting_time == self._TIMEOUT:
 			raise Exception('timeout exceeded on delete')
 
-		return {'id': id}
+		return {'id': server.id}
 
 	@reraise_as_400
 	@return_code(200)
