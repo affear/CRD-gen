@@ -302,16 +302,16 @@ class NovaAPI(CRDAPI):
 		if len(ids) == 0:
 			return None
 
-		id = self._rnd.choice(ids)
-		server = self.nova.servers.get(id)
+		uid = self._rnd.choice(ids)
+		server = self.nova.servers.get(uid)
 
 		if status is None:
 			return server
 
 		while len(ids) > 0 and server.status != status:
-			ids.remove(id)
-			id = self._rnd.choice(ids)
-			server = self.nova.servers.get(id)
+			ids.remove(uid)
+			uid = self._rnd.choice(ids)
+			server = self.nova.servers.get(uid)
 
 		if server.status == status:
 			return server
@@ -351,7 +351,7 @@ class NovaAPI(CRDAPI):
 			return {'id': server.id}
 
 		# there was a failure in OpenStack
-		server = self.nova.servers.get(id)
+		server = self.nova.servers.get(server.id)
 		raise Exception(server.fault.get('message', ''))
 
 	@reraise_as_400
@@ -382,7 +382,7 @@ class NovaAPI(CRDAPI):
 			raise Exception('timeout exceeded on resize')
 
 		if status == self._ERROR_STATUS:
-			server = self.nova.servers.get(id)
+			server = self.nova.servers.get(server.id)
 			raise Exception(server.fault.get('message', ''))
 
 		server.confirm_resize()
@@ -393,7 +393,7 @@ class NovaAPI(CRDAPI):
 			raise Exception('timeout exceeded on confirm_resize')
 
 		if status == self._ERROR_STATUS:
-			server = self.nova.servers.get(id)
+			server = self.nova.servers.get(server.id)
 			raise Exception(server.fault.get('message', ''))
 
 		return {'id': server.id}
@@ -413,7 +413,7 @@ class NovaAPI(CRDAPI):
 			time.sleep(self._POLL_TIME)
 			waiting_time += 1
 			try:
-				self.nova.servers.get(id)
+				self.nova.servers.get(server.id)
 			except NotFound:
 				# this means that the server is not found,
 				# so it has been really deleted!
