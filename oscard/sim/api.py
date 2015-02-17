@@ -299,10 +299,13 @@ class NovaAPI(CRDAPI):
 	def _get_random_active_server(self):
 		ids = list(self.server_ids) #copy ids
 
+		if len(ids) == 0:
+			return None
+
 		id = self._rnd.choice(ids)
 		server = self.nova.servers.get(id)
 
-		while server.status != self._ACTIVE_STATUS:
+		while len(ids) > 0 and server.status != self._ACTIVE_STATUS:
 			ids.remove(id)
 			id = self._rnd.choice(ids)
 			server = self.nova.servers.get(id)
