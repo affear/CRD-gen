@@ -183,7 +183,7 @@ def main():
 	LOG.info('Simulation ID: ' + str(sim_id) + ', Steps: ' + str(no_steps))
 
 	for t in xrange(no_steps):
-		cmd = {}
+		cmd = random.choice(cmds)
 		for i, p in enumerate(proxies):
 			# update architecture
 			new_architecture = p.architecture()
@@ -202,17 +202,15 @@ def main():
 				steps_run[i] -= 1
 				continue
 
-			if counts[i] > 0:
-				cmd[i] = random.choice(cmds)
-			else: #there are no virtual machines... let's spawn one!
-				cmd[i] = CreateCommand()
+			if counts[i] <= 0:  #there are no virtual machines... let's spawn one!
+				cmd = CreateCommand()
 			
-			LOG.info(p.host + ': ' + str(t) + ' --> ' + cmd[i].name)
+			LOG.info(p.host + ': ' + str(t) + ' --> ' + cmd.name)
 		
-			counts[i], failure = cmd[i].execute(p, counts[i])
+			counts[i], failure = cmd.execute(p, counts[i])
 
 			# increment number of c/r/d
-			no_instr['no_' + cmd[i].name] += 1
+			no_instr['no_' + cmd.name] += 1
 
 			snapshot = p.snapshot()
 			if failure is not None:
@@ -246,7 +244,7 @@ def main():
 			# put aggregates into snapshot
 			snapshot.update(aggregates[i])
 
-			run_on_bifrost(bifrost.add_snapshot, i, t, cmd[i].name, snapshot)
+			run_on_bifrost(bifrost.add_snapshot, i, t, cmd.name, snapshot)
 			run_on_bifrost(bifrost.update_no_instr, no_instr)
 
 	LOG.info(p.host + ': simulation ENDED')
