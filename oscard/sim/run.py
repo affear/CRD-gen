@@ -13,7 +13,22 @@ sim_opts = [
 	cfg.IntOpt(
 		name='no_t',
 		default=10,
-		help='The number of steps of the simulation'
+		help='Number of steps'
+	),
+	cfg.IntOpt(
+		name='create_w',
+		default=6,
+		help='Create command weight'
+	),
+	cfg.IntOpt(
+		name='resize_w',
+		default=2,
+		help='Resize command weight'
+	),
+	cfg.IntOpt(
+		name='delete_w',
+		default=2,
+		help='Delete command weight'
 	),
 	cfg.ListOpt(
 		name='proxy_hosts',
@@ -116,10 +131,9 @@ def main():
 	no_steps = CONF.sim.no_t
 
 	# weights for commands
-	C_WEIGHT = 6
-	R_WEIGHT = 2
-	D_WEIGHT = 2
-	assert C_WEIGHT + R_WEIGHT + D_WEIGHT == 10
+	C_WEIGHT = CONF.sim.create_w
+	R_WEIGHT = CONF.sim.resize_w
+	D_WEIGHT = CONF.sim.delete_w
 
 	cmds_weighted = [
 		(CreateCommand(), C_WEIGHT),
