@@ -6,7 +6,7 @@ from oscard import log
 from oscard.sim.proxy import ProxyAPI
 from oscard.sim import collector
 from oscard import randomizer
-import webbrowser
+import webbrowser, time
 
 sim_group = cfg.OptGroup(name='sim')
 sim_opts = [
@@ -29,6 +29,11 @@ sim_opts = [
 		name='delete_w',
 		default=2,
 		help='Delete command weight'
+	),
+	cfg.IntOpt(
+		name='nop_w',
+		default=0,
+		help='NOP command weight'
 	),
 	cfg.ListOpt(
 		name='proxy_hosts',
@@ -109,6 +114,14 @@ class ResizeCommand(BaseCommand):
 		finally:
 			return count, failure
 
+class NOPCommand(BaseCommand):
+	name = 'nop'
+
+	def execute(self, proxy, count):
+		LOG.info('NOP command, sleeping for 1 second')
+		time.sleep(1)
+		return count, None
+
 def main():
 	celery_ok = True
 
@@ -134,11 +147,13 @@ def main():
 	C_WEIGHT = CONF.sim.create_w
 	R_WEIGHT = CONF.sim.resize_w
 	D_WEIGHT = CONF.sim.delete_w
+	NOP_WEIGHT = CONF.sim.nop_w
 
 	cmds_weighted = [
 		(CreateCommand(), C_WEIGHT),
 		(ResizeCommand(), R_WEIGHT),
 		(DestroyCommand(), D_WEIGHT),
+		(NOPCommand(), NOP_WEIGHT),
 	]
 	cmds = [val for val, cnt in cmds_weighted for i in range(cnt)]
 
