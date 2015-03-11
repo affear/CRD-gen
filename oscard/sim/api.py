@@ -431,7 +431,8 @@ class NovaAPI(CRDAPI):
 			'cmps': {}
 		}
 		hosts = self.nova.hypervisors.list()
-		no_hosts = len(hosts)
+		# only active hosts
+		hosts = filter(lambda h: h.vcpus_used != 0, hosts)
 
 		#####
 		# if you want to retrieve the host from the server:
@@ -460,15 +461,17 @@ class NovaAPI(CRDAPI):
 		avg_r_memory_mb = 0
 		avg_r_local_gb = 0
 
-		if no_hosts > 0:
-			avg_r_vcpus = sum([ans['cmps'][h]['r_vcpus'] for h in ans['cmps']]) / float(no_hosts)
-			avg_r_memory_mb = sum([ans['cmps'][h]['r_memory_mb'] for h in ans['cmps']]) / float(no_hosts)
-			avg_r_local_gb = sum([ans['cmps'][h]['r_local_gb'] for h in ans['cmps']]) / float(no_hosts)
+		n_active_hosts = float(len(hosts))
+
+		if n_active_hosts > 0:
+			avg_r_vcpus = sum([ans['cmps'][h]['r_vcpus'] for h in ans['cmps']]) / n_active_hosts
+			avg_r_memory_mb = sum([ans['cmps'][h]['r_memory_mb'] for h in ans['cmps']]) / n_active_hosts
+			avg_r_local_gb = sum([ans['cmps'][h]['r_local_gb'] for h in ans['cmps']]) / n_active_hosts
 
 		ans['avg_r_vcpus'] = avg_r_vcpus
 		ans['avg_r_memory_mb'] = avg_r_memory_mb
 		ans['avg_r_local_gb'] = avg_r_local_gb
-		ans['no_active_cmps'] = len(filter(lambda h: h.vcpus_used > 0, hosts))
+		ans['no_active_cmps'] = n_active_hosts
 
 		return ans
 
