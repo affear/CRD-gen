@@ -17,6 +17,7 @@ CONF = cfg.CONF
 CONF.register_opts(random_opts)
 
 def get_seed():
+	config.reload_conf(CONF)
 	seed = CONF.random_seed - 1
 	# -1 because simulation N
 	# will be run with seed N -1

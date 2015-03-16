@@ -321,7 +321,9 @@ class NovaAPI(CRDAPI):
 	@return_code(200)
 	def init(self, **kwargs):
 		self._rnd = randomizer.get_randomizer()
-		return {'seed': randomizer.get_seed()}
+		seed = randomizer.get_seed()
+		LOG.debug('NovaAPI inited with seed ' + str(seed))
+		return {'seed': seed}
 
 	@reraise_as_400
 	@return_code(201)
